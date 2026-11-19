@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>กระดานต่อวงจรไฟฟ้า ครูต๋องฟิสิกส์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* layout idea: parts tray on the left, circuit board in the middle, properties of the selected part on the right */
+:root{
+  --bg:#0e1320; --panel:#161d2e; --line:#28334e; --text:#e9eef8; --muted:#93a0ba;
+  --accent:#ffb84d; --volt:#4fd1c0; --amp:#ff7b8b; --ok:#7bd88f;
+  --field:#0f1626; --board:#0b101b; --dots:#26314b; --wire:#56648a; --ink:#e9eef8; --termc:#cfd8ee; --selc:#dfe7fb;
+  --c-battery:#ffb84d; --c-resistor:#9fb0d6; --c-lamp:#ffd98a; --c-switch:#7bd88f; --c-ammeter:#ff7b8b; --c-voltmeter:#4fd1c0; --c-fan:#7fd4ff; --c-kwh:#c4a7ff;
+  --font-display:'Kanit','Sarabun',system-ui,sans-serif;
+  --font-body:'Sarabun','Kanit',system-ui,sans-serif;
+  color-scheme:dark;
+}
+/* white board: for bright classrooms and for screenshots that go into worksheets */
+:root[data-theme="light"]{
+  --bg:#eef1f7; --panel:#ffffff; --line:#d3d9e6; --text:#1b2334; --muted:#5b6780;
+  --accent:#e07b00; --volt:#00897b; --amp:#d6314f; --ok:#2e9e4f;
+  --field:#f3f5fa; --board:#ffffff; --dots:#cfd6e6; --wire:#6b7691; --ink:#1b2334; --termc:#44506b; --selc:#111827;
+  --c-battery:#d97706; --c-resistor:#3b4a6b; --c-lamp:#e0a100; --c-switch:#2e9e4f; --c-ammeter:#d6314f; --c-voltmeter:#00897b; --c-fan:#1a73b8; --c-kwh:#7b3fc4;
+  color-scheme:light;
+}
+/* blueprint: white lines on engineering blue */
+:root[data-theme="blue"]{
+  --bg:#0a2347; --panel:#0f3163; --line:#2a5596; --text:#eaf3ff; --muted:#9db9e3;
+  --accent:#ffd166; --volt:#6ee7d8; --amp:#ff8fa3; --ok:#8be28f;
+  --field:#0b2a56; --board:#0d3a78; --dots:#2f67ad; --wire:#9cc4ff; --ink:#eaf3ff; --termc:#eaf3ff; --selc:#ffffff;
+  --c-battery:#ffd166; --c-resistor:#cfe2ff; --c-lamp:#ffe49a; --c-switch:#8be28f; --c-ammeter:#ff8fa3; --c-voltmeter:#6ee7d8; --c-fan:#bfe9ff; --c-kwh:#d9c8ff;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:16px;line-height:1.55}
+body{padding:20px 16px 48px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2{font-family:var(--font-display);font-weight:500;margin:0;text-wrap:balance}
+h1{font-size:1.7rem}
+h2{font-size:1.05rem}
+.sub{color:var(--muted);margin:4px 0 0}
+.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.brand{display:inline-flex;align-items:center;gap:8px;font:600 1rem var(--font-display);color:var(--accent);letter-spacing:.02em;margin-bottom:2px}
+.themes{display:flex;gap:6px}
+.themes .btn{padding:6px 14px}
+.layout{display:grid;grid-template-columns:200px minmax(0,1fr) 270px;gap:14px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:1fr}.tray .parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.tray,.props{display:flex;flex-direction:column;gap:12px}
+.parts{display:flex;flex-direction:column;gap:7px}
+.btn{font:500 .92rem var(--font-display);color:var(--text);background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:9px}
+.btn:hover{border-color:var(--muted)}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn.danger{color:var(--amp)}
+.sw{width:11px;height:11px;border-radius:3px;flex:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.board{padding:6px}
+.board svg{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:10px}
+.status{margin:8px 6px 4px;min-height:1.6em;font-size:.95rem}
+.status.warn{color:var(--amp)}
+.status.info{color:var(--muted)}
+.help{margin:0;padding-left:1.1em;color:var(--muted);font-size:.9rem}
+.help li{margin:2px 0}
+.ctl{display:grid;grid-template-columns:1fr 88px auto;gap:8px;align-items:center}
+.ctl input[type=number]{width:88px;font:600 .95rem var(--font-body);color:var(--accent);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:5px 7px;text-align:right;font-variant-numeric:tabular-nums}
+.ctl .unit{color:var(--muted);min-width:1.2em}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:disabled:hover{border-color:var(--line)}
+.ctl label{grid-column:1/-1;font-family:var(--font-display);font-size:.92rem}
+.ctl output{text-align:right;color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.live{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-variant-numeric:tabular-nums;font-size:.95rem;border-top:1px solid var(--line);padding-top:10px}
+.live span:nth-child(even){text-align:right;font-weight:600}
+.muted{color:var(--muted)}
+/* svg */
+svg text{font-family:var(--font-display);fill:var(--text)}
+.wire{stroke:var(--wire);stroke-width:3;stroke-linecap:round}
+.wire.sel{stroke:var(--selc)}
+.flow{fill:none;stroke:var(--accent);stroke-linecap:round;stroke-dasharray:.1 14;animation:flow linear infinite;pointer-events:none}
+@keyframes flow{to{stroke-dashoffset:-14.1}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.comp{cursor:grab}
+.rotor{transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rotor{animation:none!important}}
+.term{fill:var(--board);stroke:var(--termc);stroke-width:2;pointer-events:none}
+.termhit{fill:transparent;cursor:crosshair}
+.termhit:hover + .term{stroke:var(--volt);stroke-width:3}
+.val{font-size:13px;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--board);stroke-width:3px;stroke-linejoin:round}
+.xl{font-size:12px;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--board);stroke-width:3px;stroke-linejoin:round}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs .btn{padding:9px 18px;font-size:1rem}
+.tabs .btn[aria-selected=true]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.basics{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:14px;align-items:start}
+.basics .card{display:flex;flex-direction:column;gap:10px}
+.basics svg{width:100%;height:auto;display:block;background:var(--board);border-radius:10px;border:1px solid var(--line)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.pair>div{display:flex;flex-direction:column;gap:8px;padding-left:10px;border-left:3px solid var(--tag)}
+.basics select{background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+.basics .note{color:var(--muted);font-size:.9rem;margin:0}
+.exh{font-size:.8rem;color:var(--muted);margin:10px 0 2px;letter-spacing:.02em}
+.showrow{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:6px 8px 8px;font-size:.93rem}
+.showrow label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.showrow input{accent-color:var(--accent);width:18px;height:18px}
+.pbar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;margin:0 6px 8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--field);font-size:.93rem;font-variant-numeric:tabular-nums}
+.pbar b{color:var(--accent);font-weight:600}
+.pbar .eq{color:var(--muted)}
+.pbar .tick{color:var(--ok);margin-left:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M13.5 2 5 13.5h5.5L9.5 22 19 9.5h-5.8z" fill="var(--accent)"/></svg><span>ครูต๋องฟิสิกส์</span></div>
+      <h1 id="pageTitle">กระดานต่อวงจรไฟฟ้า</h1>
+      <p class="sub" id="pageSub">หยิบชิ้นส่วนมาวาง ลากสายต่อเอง แล้วดูกระแสและความต่างศักย์จากมิเตอร์</p>
+    </div>
+    <div class="themes" role="group" aria-label="สีพื้นหลัง">
+      <button class="btn" data-theme="dark" aria-pressed="true">มืด</button>
+      <button class="btn" data-theme="light" aria-pressed="false">ขาว</button>
+      <button class="btn" data-theme="blue" aria-pressed="false">พิมพ์เขียว</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="เลือกการทดลอง">
+    <button class="btn" role="tab" data-tab="basics" aria-selected="true">① กระแสและความต้านทาน</button>
+    <button class="btn" role="tab" data-tab="builder" aria-selected="false">② กระดานต่อวงจร</button>
+    <button class="btn" role="tab" data-tab="meters" aria-selected="false">③ มิเตอร์ไฟฟ้า</button>
+  </nav>
+
+  <div id="tabBasics" role="tabpanel">
+   <div class="basics">
+    <section class="card" aria-label="เทียบความต้านทานของเส้นลวด 2 เส้น" style="grid-column:1/-1">
+      <h2>เทียบเส้นลวด 2 เส้น: R = ρL/A</h2>
+      <svg id="wireSvg" viewBox="0 0 520 230" role="img" aria-label="เส้นลวด A และ B" style="max-height:340px"></svg><svg width="0" height="0" style="width:0;height:0;position:absolute;border:0;background:none"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse"><path d="M1 1 L7 4 L1 7 Z" fill="var(--muted)"/></marker></defs></svg>
+      <div class="showrow" style="padding:0"><span class="muted">ให้เท่ากัน:</span>
+        <label><input type="checkbox" id="lockL" checked> ความยาว L</label>
+        <label><input type="checkbox" id="lockD"> เส้นผ่านศูนย์กลาง d</label>
+        <label><input type="checkbox" id="lockM"> วัสดุ</label></div>
+      <div class="pair" id="wireCtl"></div>
+      <div class="live" id="wireOut"></div>
+    </section>
+    <section class="card" aria-label="กฎของโอห์ม">
+      <h2>กฎของโอห์ม: กราฟ V–I ของตัวต้านทาน 2 ตัว</h2>
+      <svg id="ohmSvg" viewBox="0 0 520 300" role="img" aria-label="กราฟ V กับ I"></svg>
+      <div class="ctl"><label for="nov">ความต่างศักย์ V</label><input type="range" id="ov" aria-label="เลื่อนปรับค่า" min="0" max="24" step="0.5" value="12"><input type="number" id="nov" inputmode="decimal" step="any" value="12"><span class="unit">V</span></div>
+      <div class="ctl"><label for="nor1" style="color:var(--accent)">R₁ (เส้นสีส้ม)</label><input type="range" id="or1" aria-label="เลื่อนปรับค่า" min="1" max="100" step="1" value="10"><input type="number" id="nor1" inputmode="decimal" step="any" value="10"><span class="unit">Ω</span></div>
+      <div class="ctl"><label for="nor2" style="color:var(--volt)">R₂ (เส้นสีฟ้า)</label><input type="range" id="or2" aria-label="เลื่อนปรับค่า" min="1" max="100" step="1" value="20"><input type="number" id="nor2" inputmode="decimal" step="any" value="20"><span class="unit">Ω</span></div>
+      <div class="live" id="ohmOut"></div>
+    </section>
+    <section class="card" aria-label="ความเร็วลอยเลื่อนของอิเล็กตรอน" style="grid-column:1/-1">
+      <h2>ความเร็วลอยเลื่อนของอิเล็กตรอน: I = nevA และ I = q/t</h2>
+      <canvas id="driftCv" width="1040" height="300" role="img" aria-label="อิเล็กตรอนในเส้นลวด" style="width:100%;height:auto;display:block;background:var(--board);border:1px solid var(--line);border-radius:10px"></canvas>
+      <div class="pair">
+        <div style="--tag:var(--accent)">
+          <div class="ctl"><label for="dMat">วัสดุ</label><select id="dMat" style="grid-column:2/-1"></select></div>
+          <div class="ctl"><label for="ndI">กระแส I</label><input type="range" id="dI" aria-label="เลื่อนปรับค่า" min="0.1" max="20" step="0.1"><input type="number" id="ndI" inputmode="decimal" step="any"><span class="unit">A</span></div>
+          <div class="ctl"><label for="ndD">เส้นผ่านศูนย์กลาง d</label><input type="range" id="dD" aria-label="เลื่อนปรับค่า" min="0.5" max="4" step="0.1"><input type="number" id="ndD" inputmode="decimal" step="any"><span class="unit">mm</span></div>
+        </div>
+        <div class="live" id="driftOut"></div>
+      </div>
+      <p class="note">ภาพเคลื่อนไหวขยายการลอยเลื่อนให้เห็น (ความเร็วจริง 1 mm/s แสดงเป็นเคลื่อนที่ประมาณ 40 พิกเซล/วินาที) ส่วนการสั่นกระจัดกระจายของอิเล็กตรอนในภาพเป็นการแสดงการเคลื่อนที่แบบสุ่มซึ่งเร็วกว่าการลอยเลื่อนมาก จำนวนจุดแทนความหนาแน่น n โดยประมาณ ไม่ใช่จำนวนจริง</p>
+    </section>
+   </div>
+  </div>
+
+  <div id="tabMeters" role="tabpanel" hidden>
+   <div class="basics">
+    <section class="card" aria-label="กัลวานอมิเตอร์" style="grid-column:1/-1">
+      <h2>กัลวานอมิเตอร์ ดัดแปลงเป็นแอมมิเตอร์ / โวลต์มิเตอร์</h2>
+      <div class="showrow" style="padding:0"><span class="muted">ดัดแปลงเป็น:</span>
+        <label><input type="radio" name="mm" value="A" checked> แอมมิเตอร์ (ต่อชันต์ขนาน)</label>
+        <label><input type="radio" name="mm" value="V"> โวลต์มิเตอร์ (ต่อตัวต้านทานอนุกรม)</label></div>
+      <div class="pair"><svg id="mCirc" viewBox="0 0 360 200" role="img" aria-label="วงจรมิเตอร์"></svg><svg id="mGauge" viewBox="0 0 300 190" role="img" aria-label="หน้าปัดมิเตอร์"></svg></div>
+      <div class="pair">
+        <div style="--tag:var(--accent)">
+          <div class="ctl"><label for="nmIg">กระแสเต็มสเกล I<sub>g</sub> ของกัลวานอมิเตอร์</label><input type="range" id="mIg" aria-label="เลื่อนปรับค่า" min="0.05" max="10" step="0.05"><input type="number" id="nmIg" inputmode="decimal" step="any"><span class="unit">mA</span></div>
+          <div class="ctl"><label for="nmRg">ความต้านทานของขดลวด R<sub>g</sub></label><input type="range" id="mRg" aria-label="เลื่อนปรับค่า" min="1" max="500" step="1"><input type="number" id="nmRg" inputmode="decimal" step="any"><span class="unit">Ω</span></div>
+          <div class="ctl"><label for="nmRange" id="lmRange">ย่านวัดสูงสุด</label><input type="range" id="mRange" aria-label="เลื่อนปรับค่า" min="0.01" max="10" step="0.01"><input type="number" id="nmRange" inputmode="decimal" step="any"><span class="unit" id="umRange">A</span></div>
+          <div class="ctl"><label for="nmX" id="lmX">กระแสที่วัด</label><input type="range" id="mX" aria-label="เลื่อนปรับค่า" min="0" max="1" step="0.001"><input type="number" id="nmX" inputmode="decimal" step="any"><span class="unit" id="umX">A</span></div>
+        </div>
+        <div class="live" id="mOut"></div>
+      </div>
+    </section>
+    <section class="card" aria-label="ผลของมิเตอร์ต่อวงจร">
+      <h2>มิเตอร์จริงรบกวนวงจรแค่ไหน</h2>
+      <svg id="lCirc" viewBox="0 0 360 150" role="img" aria-label="วงจรวัดค่า"></svg>
+      <div class="ctl"><label for="nlE">แหล่งกำเนิด ε</label><input type="range" id="lE" aria-label="เลื่อนปรับค่า" min="1" max="24" step="0.5"><input type="number" id="nlE" inputmode="decimal" step="any"><span class="unit">V</span></div>
+      <div class="ctl"><label for="nlR1" id="lblR1">R₁</label><input type="range" id="lR1" aria-label="เลื่อนปรับค่า (สเกลลอการิทึม)" min="0" max="7" step="0.01"><input type="number" id="nlR1" inputmode="decimal" step="any"><span class="unit">Ω</span></div>
+      <div class="ctl" id="rowR2"><label for="nlR2">R₂ (ที่วัดคร่อม)</label><input type="range" id="lR2" aria-label="เลื่อนปรับค่า (สเกลลอการิทึม)" min="0" max="7" step="0.01"><input type="number" id="nlR2" inputmode="decimal" step="any"><span class="unit">Ω</span></div>
+      <div class="live" id="lOut"></div>
+    </section>
+    <section class="card" aria-label="โอห์มมิเตอร์">
+      <h2>โอห์มมิเตอร์</h2>
+      <svg id="oGauge" viewBox="0 0 300 190" role="img" aria-label="หน้าปัดโอห์มมิเตอร์"></svg>
+      <div class="ctl"><label for="noE">แบตเตอรี่ในเครื่อง ε</label><input type="range" id="oE" aria-label="เลื่อนปรับค่า" min="1" max="9" step="0.5"><input type="number" id="noE" inputmode="decimal" step="any"><span class="unit">V</span></div>
+      <div class="ctl"><label for="noX">ตัวต้านทานที่วัด R<sub>x</sub></label><input type="range" id="oX" aria-label="เลื่อนปรับค่า (สเกลลอการิทึม)" min="0" max="5" step="0.01"><input type="number" id="noX" inputmode="decimal" step="any"><span class="unit">Ω</span></div>
+      <div class="live" id="oOut"></div>
+    </section>
+   </div>
+  </div>
+
+  <div id="tabBuilder" role="tabpanel" hidden>
+  <div class="layout">
+    <aside class="card tray" aria-label="ชิ้นส่วน">
+      <div class="row2"><button class="btn" id="undo" title="Ctrl+Z">↶ ย้อนกลับ</button><button class="btn" id="redo" title="Ctrl+Y">↷ ทำซ้ำ</button></div>
+      <h2>ชิ้นส่วน</h2>
+      <div class="parts" id="parts"></div>
+      <button class="btn" id="toolWire" aria-pressed="false"><span class="sw" style="background:var(--wire)"></span>โหมดลากสาย</button>
+      <button class="btn" id="toolDiag" aria-pressed="false"><span class="sw" style="background:var(--volt)"></span>สายเฉียง 45°</button>
+      <h2>วงจรตัวอย่าง</h2>
+      <div class="parts">
+        <div class="exh">โอห์ม อนุกรม ขนาน</div>
+        <button class="btn" data-ex="series">อนุกรม + มิเตอร์</button>
+        <button class="btn" data-ex="parallel">ขนาน 3 กิ่ง</button>
+        <button class="btn" data-ex="mix">ผสม: R₁ อนุกรมกับ (R₂ ขนาน R₃)</button>
+        <div class="exh">แรงเคลื่อนไฟฟ้าและ r ภายใน</div>
+        <button class="btn" data-ex="batt">แบตเตอรี่ 2 ก้อนอนุกรม</button>
+        <button class="btn" data-ex="rint">วัด V ที่ขั้ว เมื่อมี r ภายใน</button>
+        <div class="exh">วงจรซับซ้อน</div>
+        <button class="btn" data-ex="kirch">เคียร์ชอฟฟ์: 2 แบตเตอรี่ 3 กิ่ง</button>
+        <button class="btn" data-ex="bridge">วีทสโตนบริดจ์ สมดุล (เฉียง)</button>
+        <button class="btn" data-ex="bridge2">วีทสโตนบริดจ์ ไม่สมดุล</button>
+        <div class="exh">กำลังไฟฟ้าและค่าไฟ</div>
+        <button class="btn" data-ex="lamps">หลอดไฟ: อนุกรม vs ขนาน</button>
+        <button class="btn" data-ex="fan">พัดลม: หมุนเร็ว-ช้า</button>
+        <button class="btn" data-ex="bill">ค่าไฟ: เครื่องใช้ไฟฟ้า</button>
+        <button class="btn danger" id="clear">ล้างกระดาน</button>
+      </div>
+    </aside>
+
+    <section class="card board" aria-label="กระดานวงจร">
+      <div class="showrow"><span class="muted">แสดงบนทุกชิ้นส่วน:</span>
+        <label><input type="checkbox" id="fV"> V ความต่างศักย์</label>
+        <label><input type="checkbox" id="fI"> I กระแส</label>
+        <label><input type="checkbox" id="fP"> P กำลัง</label>
+        <span style="flex:1"></span>
+        <label><input type="checkbox" id="fHide"> ซ่อนค่าที่วัดได้ (โหมดทำนาย)</label>
+        <button class="btn" id="btnReveal" hidden style="padding:5px 14px">เฉลย</button>
+      </div>
+      <svg id="svg" viewBox="0 0 760 440" role="img" aria-label="กระดานวงจรไฟฟ้า">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="1.1" fill="var(--dots)"/></pattern>
+          <radialGradient id="glow"><stop offset="0%" style="stop-color:var(--accent)" stop-opacity=".95"/><stop offset="100%" style="stop-color:var(--accent)" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect width="760" height="440" fill="var(--board)"/>
+        <rect width="760" height="440" fill="url(#grid)"/>
+        <g id="scene"></g>
+        <text x="744" y="428" text-anchor="end" font-size="13" pointer-events="none" style="fill:var(--muted);opacity:.75;font-family:var(--font-display)">ครูต๋องฟิสิกส์</text>
+      </svg>
+      <div class="status info" id="status" role="status"></div>
+      <div class="pbar" id="pbar" aria-live="polite"></div>
+      <ul class="help">
+        <li>กดปุ่มชิ้นส่วนเพื่อวางบนกระดาน ลากที่ตัวชิ้นส่วนเพื่อย้าย</li>
+        <li>ลากจากวงกลมที่ปลายขั้วไปยังจุดอื่นเพื่อต่อสาย เริ่มจากกลางสายเดิมได้ในโหมดลากสาย</li>
+        <li>ชิ้นส่วนต่อกันเมื่อขั้วอยู่ตรงจุดเดียวกัน เมื่อย้ายหรือหมุนชิ้นส่วน สายที่ต่ออยู่จะตามไปด้วย (กด Alt ค้างขณะลากถ้าไม่ต้องการให้สายตาม)</li>
+        <li>กดปุ่ม สายเฉียง 45° เพื่อลากสายตรงที่ล็อกมุม 0° 45° 90° หรือกด Shift ค้างขณะลากเพื่อสลับชั่วคราว ชิ้นส่วนหมุนได้ทีละ 45° ด้วยปุ่ม หมุน 45° (หรือ Shift+R)</li>
+        <li>คลิกชิ้นส่วนใดก็จะเห็น V, I, P ของชิ้นนั้น หรือติ๊กกล่องเหนือกระดานเพื่อแสดงทุกชิ้นพร้อมกัน</li>
+        <li>คลิกที่สวิตช์เพื่อเปิด-ปิด กด R เพื่อหมุน กด Delete เพื่อลบ</li>
+        <li>ทำพลาดกด Ctrl+Z เพื่อย้อนกลับ Ctrl+Y เพื่อทำซ้ำ (หรือใช้ปุ่มทางซ้าย)</li>
+        <li>ปรับค่าได้สองทาง คือเลื่อนแถบ หรือพิมพ์ตัวเลขในช่องแล้วกด Enter</li>
+      </ul>
+    </section>
+
+    <aside class="card props" aria-label="รายละเอียดชิ้นส่วนที่เลือก" id="props"></aside>
+  </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const svg = $('#svg'), scene = $('#scene');
+const G = 20, W = 760, H = 440;
+const snap = v => Math.round(v/G)*G;
+const fI = x => { const a=Math.abs(x); return a>=1 ? x.toFixed(2) : a>=0.0005 ? x.toFixed(3) : (0).toFixed(3); };
+const fV = x => (Math.abs(x)<0.005?0:x).toFixed(2);
+
+const TYPES = {
+  battery:{name:'แบตเตอรี่',val:9,min:1,max:24,step:0.5,unit:'V',color:'var(--c-battery)'},
+  resistor:{name:'ตัวต้านทาน',val:10,min:1,max:100,step:1,unit:'Ω',color:'var(--c-resistor)'},
+  lamp:{name:'หลอดไฟ',val:10,min:1,max:100,step:1,unit:'Ω',color:'var(--c-lamp)'},
+  fan:{name:'พัดลม',color:'var(--c-fan)'},
+  kwh:{name:'มิเตอร์ไฟฟ้า',color:'var(--c-kwh)'},
+  switch:{name:'สวิตช์',color:'var(--c-switch)'},
+  ammeter:{name:'แอมมิเตอร์',color:'var(--c-ammeter)'},
+  voltmeter:{name:'โวลต์มิเตอร์',color:'var(--c-voltmeter)'}
+};
+
+let comps = [], wires = [], nextId = 1;
+let sel = null, tool = 'select', drag = null, sim = null;
+
+/* ---------- undo / redo ---------- */
+const undoS = [], redoS = [];
+const snapshot = () => JSON.stringify({comps,wires,nextId});
+function restore(str){ const o=JSON.parse(str); comps=o.comps; wires=o.wires; nextId=Math.max(nextId,o.nextId); }
+function updateHist(){ $('#undo').disabled=!undoS.length; $('#redo').disabled=!redoS.length; }
+function pushUndo(str){ undoS.push(str); if(undoS.length>200) undoS.shift(); redoS.length=0; updateHist(); }
+function checkpoint(){ pushUndo(snapshot()); }
+function fixSel(){ if(sel && (sel.t==='c' ? !comps.some(c=>c.id===sel.id) : !wires.some(w=>w.id===sel.id))) sel=null; }
+function undo(){ if(!undoS.length) return; redoS.push(snapshot()); restore(undoS.pop()); fixSel(); updateHist(); render(true); }
+function redo(){ if(!redoS.length) return; undoS.push(snapshot()); restore(redoS.pop()); fixSel(); updateHist(); render(true); }
+let gesture = false;   // true while one slider drag or one typed edit is being coalesced into a single undo step
+
+/* ---------- geometry ---------- */
+const OFF = [[40,0],[40,40],[0,40],[-40,40],[-40,0],[-40,-40],[0,-40],[40,-40]];   // rot * 45 degrees, clockwise
+const half = c => Math.hypot(OFF[c.rot][0],OFF[c.rot][1]);
+function terms(c){
+  if(c.type==='kwh') return [];            // the energy meter reads the whole board, it has no terminals
+  const [ox,oy] = OFF[c.rot];
+  return [{x:c.x-ox,y:c.y-oy},{x:c.x+ox,y:c.y+oy}];   // [a, b]
+}
+const key = (x,y) => x+','+y;
+const getComp = id => comps.find(c=>c.id===id);
+const BURN = 2;   // a rated lamp burns out above this multiple of its rated power (a program assumption)
+const compR = c => ((c.type==='lamp' && c.mode==='rated') || c.type==='fan') ? c.ratedV*c.ratedV/c.ratedP : c.val;
+function fanInfo(c,r){
+  const ratio = r.P/c.ratedP, spin = ratio>=0.08;
+  const period = spin ? Math.min(6,Math.max(0.45,1.4/ratio)) : 0;     // seconds per turn, faster with more power
+  const state = !spin ? 'ไม่หมุน (กำลังน้อยเกินไป)' : ratio<0.9 ? 'หมุนช้ากว่าปกติ' : ratio<=1.1 ? 'หมุนปกติ' : 'หมุนเร็วเกินพิกัด';
+  return {ratio,spin,period,state};
+}
+function lampInfo(c,r){
+  if(c.burnt) return {b:0,over:1,ratio:0,state:'ขาด'};
+  if(c.mode==='rated'){
+    const ratio = r.P/c.ratedP;
+    const b = r.P>1e-9 ? Math.min(1,Math.pow(ratio,0.7)) : 0;
+    const state = ratio<0.02 ? 'ไม่ติด' : ratio<0.9 ? 'มืดกว่าปกติ' : ratio<=1.1 ? 'สว่างปกติ' : 'สว่างเกินพิกัด';
+    return {b,over:Math.min(1.5,Math.max(1,1+(ratio-1)*0.5)),ratio,state};
+  }
+  const b = r.P>1e-9 ? Math.min(1,Math.pow(r.P/12,0.4)) : 0;
+  return {b,over:1,ratio:null,state:r.P>1e-9?'ติด':'ไม่ติด'};
+}
+
+function addComp(type,x,y,rot=0){
+  const t = TYPES[type];
+  const c = {id:nextId++,type,x,y,rot,val:t.val,r:0,closed:true,mode:'rated',ratedV:9,ratedP:3,burnt:false,rate:4,hours:5,days:30};
+  comps.push(c); return c;
+}
+function addWire(x1,y1,x2,y2){ if(x1===x2&&y1===y2) return; wires.push({id:nextId++,x1,y1,x2,y2}); }
+let wireStraight = false;
+function addRoute(x1,y1,x2,y2,straight){
+  if(straight||x1===x2||y1===y2) addWire(x1,y1,x2,y2);
+  else { addWire(x1,y1,x2,y1); addWire(x2,y1,x2,y2); }
+}
+
+// split every wire at any terminal or wire end that lies strictly inside it, and drop duplicates
+function normalize(){
+  const P = new Set();
+  comps.forEach(c=>terms(c).forEach(t=>P.add(key(t.x,t.y))));
+  wires.forEach(w=>{P.add(key(w.x1,w.y1));P.add(key(w.x2,w.y2));});
+  const pts = [...P].map(k=>k.split(',').map(Number));
+  const out = [];
+  for(const w of wires){
+    const dx=w.x2-w.x1, dy=w.y2-w.y1, len2=dx*dx+dy*dy;
+    const inside = [];
+    for(const [x,y] of pts){
+      if((x-w.x1)*dy-(y-w.y1)*dx!==0) continue;                 // not on the line
+      const t = ((x-w.x1)*dx+(y-w.y1)*dy)/len2;
+      if(t>1e-9 && t<1-1e-9) inside.push({x,y,t});
+    }
+    if(!inside.length){ out.push(w); continue; }
+    inside.sort((p,q)=>p.t-q.t);
+    const seq = [[w.x1,w.y1],...inside.map(p=>[p.x,p.y]),[w.x2,w.y2]];
+    for(let i=0;i<seq.length-1;i++) out.push({id:nextId++,x1:seq[i][0],y1:seq[i][1],x2:seq[i+1][0],y2:seq[i+1][1]});
+  }
+  const seen = new Set();
+  wires = out.filter(w=>{
+    if(w.x1===w.x2&&w.y1===w.y2) return false;
+    const a=key(w.x1,w.y1), b=key(w.x2,w.y2), k = a<b ? a+'|'+b : b+'|'+a;
+    if(seen.has(k)) return false; seen.add(k); return true;
+  });
+  if(sel && sel.t==='w' && !wires.some(w=>w.id===sel.id)) sel = null;
+}
+
+/* ---------- solver (modified nodal analysis) ---------- */
+function gauss(A,b){
+  const n = b.length;
+  for(let i=0;i<n;i++){
+    let p=i;
+    for(let r=i+1;r<n;r++) if(Math.abs(A[r][i])>Math.abs(A[p][i])) p=r;
+    if(Math.abs(A[p][i])<1e-12) return null;
+    [A[i],A[p]]=[A[p],A[i]]; [b[i],b[p]]=[b[p],b[i]];
+    for(let r=i+1;r<n;r++){
+      const f = A[r][i]/A[i][i]; if(f===0) continue;
+      for(let k=i;k<n;k++) A[r][k]-=f*A[i][k];
+      b[r]-=f*b[i];
+    }
+  }
+  const x = new Array(n);
+  for(let i=n-1;i>=0;i--){ let s=b[i]; for(let k=i+1;k<n;k++) s-=A[i][k]*x[k]; x[i]=s/A[i][i]; }
+  return x;
+}
+
+function solve(){
+  const out = {res:new Map(), wireI:new Map(), warn:[], info:[], error:false, power:{emf:0,used:0,loss:0}};
+  // electrical nodes from wires
+  const uf = new Map();
+  const find = k => { if(!uf.has(k)) uf.set(k,k); let r=k; while(uf.get(r)!==r) r=uf.get(r); let c=k; while(uf.get(c)!==r){const nx=uf.get(c); uf.set(c,r); c=nx;} return r; };
+  wires.forEach(w=>{ const a=find(key(w.x1,w.y1)), b=find(key(w.x2,w.y2)); if(a!==b) uf.set(a,b); });
+  const idx = new Map(); let n = 0;
+  const node = k => { const r=find(k); if(!idx.has(r)) idx.set(r,n++); return idx.get(r); };
+  const tinfo = new Map();
+  comps.forEach(c=>{ if(c.type==='kwh') return; const t=terms(c); tinfo.set(c.id,{na:node(key(t[0].x,t[0].y)),nb:node(key(t[1].x,t[1].y))}); });
+
+  const rs = [], vs = [];
+  comps.forEach(c=>{
+    if(c.type==='kwh') return;
+    const {na,nb} = tinfo.get(c.id);
+    if(c.type==='resistor'||c.type==='fan'||(c.type==='lamp'&&!c.burnt)) rs.push({a:na,b:nb,R:compR(c)});
+    else if(c.type==='switch'){ if(c.closed) rs.push({a:na,b:nb,R:1e-3}); }
+    else if(c.type==='battery'){ const q=n++; vs.push({p:q,m:na,E:c.val,c}); rs.push({a:q,b:nb,R:Math.max(c.r||0,1e-3)}); }
+    else if(c.type==='ammeter'){ if(na!==nb) vs.push({p:na,m:nb,E:0,c}); }
+  });
+
+  // one reference node per connected group
+  const par = Array.from({length:n},(_,i)=>i);
+  const f2 = i => { while(par[i]!==i){ par[i]=par[par[i]]; i=par[i]; } return i; };
+  const un = (a,b) => { par[f2(a)] = f2(b); };
+  rs.forEach(r=>un(r.a,r.b)); vs.forEach(v=>un(v.p,v.m));
+  const seen = new Map(), ground = new Set(), gid = [];
+  for(let i=0;i<n;i++){ const g=f2(i); gid[i]=g; if(!seen.has(g)){ seen.set(g,i); ground.add(i); } }
+  const unk = new Array(n).fill(-1); let N0 = 0;
+  for(let i=0;i<n;i++) if(!ground.has(i)) unk[i]=N0++;
+  const N = N0 + vs.length;
+  const A = Array.from({length:N},()=>new Array(N).fill(0)), b = new Array(N).fill(0);
+  rs.forEach(r=>{
+    const g = 1/r.R, ia=unk[r.a], ib=unk[r.b];
+    if(ia>=0) A[ia][ia]+=g; if(ib>=0) A[ib][ib]+=g;
+    if(ia>=0&&ib>=0){ A[ia][ib]-=g; A[ib][ia]-=g; }
+  });
+  vs.forEach((v,k)=>{
+    const ip=unk[v.p], im=unk[v.m], row=N0+k;
+    if(ip>=0){ A[ip][row]+=1; A[row][ip]+=1; }
+    if(im>=0){ A[im][row]-=1; A[row][im]-=1; }
+    b[row]=v.E;
+  });
+  let x = [];
+  if(N>0){ x = gauss(A,b); if(!x){ out.error=true; out.warn.push('แก้วงจรไม่ได้ อาจมีแอมมิเตอร์ต่อขนานกันหรือต่อวนเป็นลูปที่ไม่มีความต้านทาน'); return out; } }
+  const Vn = i => unk[i]>=0 ? x[unk[i]] : 0;
+  out.Vn = Vn; out.tinfo = tinfo; out.gid = gid;
+
+  const inj = new Map();
+  const addInj = (k,v) => inj.set(k,(inj.get(k)||0)+v);
+  comps.forEach(c=>{
+    if(c.type==='kwh') return;
+    const {na,nb} = tinfo.get(c.id), t = terms(c);
+    const Va=Vn(na), Vb=Vn(nb), same = gid[na]===gid[nb];
+    let I=0, V=Va-Vb, P=0, valid=true;
+    if(c.type==='lamp' && c.burnt){ I=0; P=0; V = same ? V : null; }
+    else if(c.type==='resistor'||c.type==='lamp'||c.type==='fan'){ const R=compR(c); I=V/R; P=I*I*R; }
+    else if(c.type==='switch'){ I = c.closed ? V/1e-3 : 0; V = c.closed ? 0 : (same?V:null); }
+    else if(c.type==='battery'){
+      const k = vs.findIndex(v=>v.c===c); I = -x[N0+k]; V = Vb-Va; P = V*I;
+      if(I>100) out.warn.push('ลัดวงจร แบตเตอรี่จ่ายกระแสสูงมากกว่า 100 A ให้ถอดสายที่ลัดออก');
+    }
+    else if(c.type==='ammeter'){ const k = vs.findIndex(v=>v.c===c); I = k>=0 ? x[N0+k] : 0; V = 0; }
+    else if(c.type==='voltmeter'){ I=0; V = same ? V : null; }
+    if(c.type==='battery'){ out.power.emf += c.val*I; out.power.loss += I*I*Math.max(c.r||0,1e-3); }
+    else if(c.type==='resistor'||c.type==='lamp'||c.type==='fan') out.power.used += P;
+    else if(c.type==='switch' && c.closed) out.power.used += I*I*1e-3;
+    out.res.set(c.id,{I,V,P});
+    if(c.type!=='voltmeter'){ addInj(key(t[0].x,t[0].y),-I); addInj(key(t[1].x,t[1].y),+I); }
+  });
+
+  // current in each wire segment: walk a spanning tree of the wire graph
+  const adj = new Map();
+  wires.forEach(w=>{
+    const a=key(w.x1,w.y1), b2=key(w.x2,w.y2);
+    if(!adj.has(a)) adj.set(a,[]); if(!adj.has(b2)) adj.set(b2,[]);
+    adj.get(a).push({w,o:b2}); adj.get(b2).push({w,o:a});
+  });
+  const visited = new Set(), usedW = new Set();
+  for(const start of adj.keys()){
+    if(visited.has(start)) continue;
+    const order = [], parent = new Map(); const stack=[start]; visited.add(start); parent.set(start,null);
+    while(stack.length){
+      const k = stack.pop(); order.push(k);
+      for(const {w,o} of adj.get(k)){
+        if(visited.has(o)) continue;
+        visited.add(o); parent.set(o,{k,w}); usedW.add(w.id); stack.push(o);
+      }
+    }
+    const sub = new Map(order.map(k=>[k,inj.get(k)||0]));
+    for(let i=order.length-1;i>0;i--){
+      const k = order[i], pr = parent.get(k);
+      sub.set(pr.k, sub.get(pr.k)+sub.get(k));
+      const w = pr.w, s = sub.get(k);                   // current from k to its parent
+      out.wireI.set(w.id, key(w.x1,w.y1)===k ? s : -s);  // signed along 1 -> 2
+    }
+  }
+  if(!comps.some(c=>c.type==='battery')) out.info.push('ยังไม่มีแบตเตอรี่ กดปุ่มแบตเตอรี่เพื่อวาง');
+  return out;
+}
+
+/* ---------- drawing ---------- */
+function flowAttrs(I){
+  const a = Math.abs(I);
+  const speed = 28 + 80*Math.sqrt(a);
+  return `style="animation-duration:${(14.1/speed).toFixed(3)}s;stroke-width:${Math.min(7,3.6+1.2*Math.sqrt(a)).toFixed(2)}px"`;
+}
+const clock = {running:false,speed:3600,kwh:0,hours:0};
+function kwhSymbol(c){
+  const col = 'var(--c-kwh)', P = (sim && sim.power) ? Math.max(0,sim.power.used) : 0;
+  const period = P>1e-6 ? Math.max(0.35,Math.min(8,8/Math.sqrt(1+P))) : 0;
+  const sp = period ? ` style="animation:spin ${period.toFixed(2)}s linear infinite"` : '';
+  return `<g data-kwh="${c.id}">
+    <text y="-44" text-anchor="middle" font-size="13" style="fill:${col};font-weight:500">มิเตอร์ไฟฟ้า</text>
+    <rect x="-50" y="-38" width="100" height="76" rx="9" fill="var(--panel)" stroke="${col}" stroke-width="2.5"/>
+    <rect x="-42" y="-30" width="84" height="22" rx="4" fill="var(--board)" stroke="var(--line)"/>
+    <text class="kr" x="0" y="-14" text-anchor="middle" font-size="14" font-weight="600" style="font-variant-numeric:tabular-nums">${clock.kwh.toFixed(3)} kWh</text>
+    <circle cx="-22" cy="14" r="15" fill="var(--board)" stroke="var(--line)" stroke-width="1.5"/>
+    <g class="rotor"${sp}><circle cx="-22" cy="14" r="13" fill="none"/><line x1="-22" y1="14" x2="-22" y2="3" stroke="var(--amp)" stroke-width="3" stroke-linecap="round"/></g>
+    <text class="kc" x="22" y="12" text-anchor="middle" font-size="13" style="fill:var(--accent);font-weight:600">฿ ${(clock.kwh*c.rate).toFixed(2)}</text>
+    <text x="22" y="28" text-anchor="middle" font-size="11" style="fill:var(--muted)">${masked()?'?':P>=100?P.toFixed(0):P.toFixed(1)} W</text>
+  </g><rect x="-50" y="-38" width="100" height="76" fill="transparent"/>`;
+}
+function updateKwhText(){
+  scene.querySelectorAll('[data-kwh]').forEach(g=>{
+    const c = getComp(+g.dataset.kwh); if(!c) return;
+    g.querySelector('.kr').textContent = clock.kwh.toFixed(3)+' kWh';
+    g.querySelector('.kc').textContent = '฿ '+(clock.kwh*c.rate).toFixed(2);
+  });
+}
+function clockStep(dtSec){
+  if(!clock.running || !sim || !sim.power) return;
+  const dh = dtSec*clock.speed/3600;
+  clock.hours += dh; clock.kwh += Math.max(0,sim.power.used)/1000*dh;
+  updateKwhText();
+  if(sel && sel.t==='c'){ const c=getComp(sel.id); if(c && c.type==='kwh') updateLive(); }
+}
+function symbol(c,r){
+  if(c.type==='kwh') return kwhSymbol(c);
+  const col = TYPES[c.type].color, I = r.I, hl = half(c);
+  let s = '';
+  if(c.type==='switch'){
+    s += `<line x1="${-hl}" y1="0" x2="-20" y2="0" class="wire"/><line x1="20" y1="0" x2="${hl}" y2="0" class="wire"/>`;
+    s += c.closed ? `<line x1="-20" y1="0" x2="20" y2="0" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`
+                  : `<line x1="-20" y1="0" x2="15" y2="-17" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
+    s += `<circle cx="-20" cy="0" r="4" fill="${col}"/><circle cx="20" cy="0" r="4" fill="${col}"/>`;
+    return s;
+  }
+  s += `<line x1="${-hl}" y1="0" x2="${hl}" y2="0" class="wire"/>`;
+  if(Math.abs(I)>1e-9) s += `<path class="flow" d="${I>0?`M${-hl},0 L${hl},0`:`M${hl},0 L${-hl},0`}" ${flowAttrs(I)}/>`;
+  if(c.type==='resistor'){
+    const hb = r.P>1e-9 ? Math.min(1,Math.pow(r.P/8,0.45)) : 0;
+    s += `<rect x="-26" y="-9" width="52" height="18" rx="3" fill="var(--panel)" stroke="${col}" stroke-width="2.5"/>`;
+    if(hb>0.01) s += `<rect x="-26" y="-9" width="52" height="18" rx="3" fill="var(--accent)" opacity="${(hb*0.7).toFixed(3)}" pointer-events="none"/>`;
+  }else if(c.type==='lamp'){
+    const L = lampInfo(c,r);
+    s += `<circle r="${(36*L.over).toFixed(1)}" fill="url(#glow)" opacity="${L.b.toFixed(3)}"/>`;
+    s += `<circle r="16" fill="var(--board)" stroke="var(--c-resistor)" stroke-width="2.5"/>`;
+    s += `<circle r="14" fill="var(--c-lamp)" opacity="${(L.b*.9).toFixed(3)}"/>`;
+    s += c.burnt
+      ? `<g stroke="var(--amp)" stroke-width="2" stroke-linecap="round"><line x1="-10" y1="-10" x2="-3" y2="-3"/><line x1="3" y1="3" x2="10" y2="10"/><line x1="10" y1="-10" x2="-10" y2="10" stroke-dasharray="2 5" opacity=".7"/></g>`
+      : `<g stroke="var(--ink)" stroke-width="2" stroke-linecap="round"><line x1="-10" y1="-10" x2="10" y2="10"/><line x1="10" y1="-10" x2="-10" y2="10"/></g>`;
+  }else if(c.type==='fan'){
+    const F = fanInfo(c,r);
+    const sp = F.spin ? ` style="animation:spin ${F.period.toFixed(2)}s linear infinite"` : '';
+    s += `<circle r="18" fill="var(--board)" stroke="var(--c-fan)" stroke-width="2.5"/>`;
+    s += `<g class="rotor"${sp}><circle r="15" fill="none"/>` + [0,120,240].map(a=>`<ellipse cx="0" cy="-8" rx="4.5" ry="8" transform="rotate(${a})" fill="var(--c-fan)" opacity=".9"/>`).join('') + `</g><circle r="3.2" fill="var(--ink)"/>`;
+  }else if(c.type==='battery'){
+    s += `<rect x="-13" y="-22" width="26" height="44" fill="var(--board)"/>`;
+    s += `<line x1="-6" y1="-10" x2="-6" y2="10" stroke="var(--ink)" stroke-width="5"/>`;
+    s += `<line x1="6" y1="-18" x2="6" y2="18" stroke="${col}" stroke-width="2.5"/>`;
+  }else if(c.type==='ammeter'||c.type==='voltmeter'){
+    const L = c.type==='ammeter' ? 'A' : 'V';
+    s += `<circle r="18" fill="var(--panel)" stroke="${col}" stroke-width="2.5"/>`;
+    s += `<text transform="rotate(${-c.rot*45})" y="6" text-anchor="middle" font-size="17" font-weight="600" style="fill:${col}">${L}</text>`;
+  }
+  return s;
+}
+const show = {V:false,I:false,P:false};
+let hideMode=false, revealed=false;
+const masked = () => hideMode && !revealed;
+function extras(c,r){
+  if(masked()) return (c.type==='lamp'&&c.burnt) ? [['ขาด!','var(--amp)']] : [];
+  const f = {V:show.V,I:show.I,P:show.P};
+  if(sel&&sel.t==='c'&&sel.id===c.id){ f.V=f.I=f.P=true; }
+  const out = [];
+  if(c.type==='lamp'||c.type==='fan'){
+    if(c.burnt) out.push(['ขาด!','var(--amp)']);
+    else if(c.mode==='rated'||c.type==='fan') out.push([Math.round(100*r.P/c.ratedP)+'% ของพิกัด','var(--accent)']);
+  }
+  if(c.type==='ammeter'||c.type==='voltmeter'||c.type==='kwh') return out;
+  if(c.type==='switch'){ if(f.I) out.push(['I = '+fI(Math.abs(r.I))+' A','var(--amp)']); return out; }
+  const ab = c.type==='battery' ? (x=>x) : Math.abs;
+  if(f.V) out.push(['V = '+(r.V===null?'—':fV(ab(r.V)))+' V','var(--volt)']);
+  if(f.I) out.push(['I = '+fI(ab(r.I))+' A','var(--amp)']);
+  if(f.P) out.push(['P = '+fV(r.P)+' W','var(--accent)']);
+  if(c.type==='battery'&&f.P&&c.r>0) out.push(['สูญเสียใน r = '+fV(r.I*r.I*c.r)+' W','var(--muted)']);
+  return out;
+}
+function label(c,r){
+  if(c.type==='kwh') return '';
+  let t='';
+  if(c.type==='battery') t = c.val+' V';
+  else if(c.type==='resistor') t = c.val+' Ω';
+  else if(c.type==='lamp') t = c.mode==='rated' ? `${c.ratedV} V ${c.ratedP} W` : c.val+' Ω';
+  else if(c.type==='fan') t = `${c.ratedV} V ${c.ratedP} W`;
+  else if(c.type==='switch') t = c.closed ? 'ปิด' : 'เปิด';
+  else if(c.type==='ammeter') t = masked() ? '? A' : fI(r.I)+' A';
+  else if(c.type==='voltmeter') t = masked() ? '? V' : r.V===null ? '— V' : fV(r.V)+' V';
+  const vertical = c.rot%4===2, diag = c.rot%2===1;
+  const x = vertical ? c.x+26 : c.x, y = vertical ? c.y+4 : c.y-(diag?34:26);
+  const col = c.type==='ammeter' ? 'var(--amp)' : c.type==='voltmeter' ? 'var(--volt)' : 'var(--text)';
+  const anchor = vertical?'start':'middle';
+  let out = `<text class="val" x="${x}" y="${y}" text-anchor="${anchor}" style="fill:${col};font-weight:500">${t}</text>`;
+  extras(c,r).forEach(([txt,cl],k)=>{
+    const ey = vertical ? c.y+4+15*(k+1) : c.y+(diag?44:34)+15*k;
+    out += `<text class="xl" x="${x}" y="${ey}" text-anchor="${anchor}" style="fill:${cl};font-weight:500">${txt}</text>`;
+  });
+  return out;
+}
+function polarityMark(c){
+  const t = terms(c), o = OFF[c.rot], hl = Math.hypot(o[0],o[1]), ux = o[0]/hl, uy = o[1]/hl;
+  const px = uy, py = -ux;
+  if(c.type==='battery'){
+    const p = t[1]; return `<text x="${p.x-ux*12+px*12}" y="${p.y-uy*12+py*12+5}" text-anchor="middle" font-size="15" style="fill:var(--accent)">+</text>`;
+  }
+  if(c.type==='ammeter'||c.type==='voltmeter'){
+    const p = t[0]; return `<text x="${p.x+ux*11+px*11}" y="${p.y+uy*11+py*11+5}" text-anchor="middle" font-size="15" style="fill:var(--muted)">+</text>`;
+  }
+  return '';
+}
+function routePath(d){
+  return (d.straight||d.x1===d.x2||d.y1===d.y2) ? `M${d.x1},${d.y1} L${d.x2},${d.y2}` : `M${d.x1},${d.y1} L${d.x2},${d.y1} L${d.x2},${d.y2}`;
+}
+
+function autoBurn(){
+  let worst=null, wr=0;
+  comps.forEach(c=>{
+    if(c.type!=='lamp'||c.mode!=='rated'||c.burnt) return;
+    const r = sim.res.get(c.id); if(!r) return;
+    const ratio = r.P/c.ratedP;
+    if(ratio>=BURN && ratio>wr){ wr=ratio; worst=c; }
+  });
+  if(worst){ worst.burnt=true; return true; }
+  return false;
+}
+function renderScene(){
+  sim = solve();
+  for(let g=0; g<10 && autoBurn(); g++) sim = solve();
+  const nBurnt = comps.filter(c=>c.type==='lamp'&&c.burnt).length;
+  if(nBurnt) sim.warn.push(`หลอดขาด ${nBurnt} ดวง เพราะกำลังเกินพิกัดมาก เลือกหลอดแล้วกด "เปลี่ยนหลอดใหม่"`);
+  const deg = new Map(), bump = k => deg.set(k,(deg.get(k)||0)+1), termKeys = new Set();
+  wires.forEach(w=>{bump(key(w.x1,w.y1));bump(key(w.x2,w.y2));});
+  comps.forEach(c=>terms(c).forEach(t=>{const k=key(t.x,t.y); termKeys.add(k); bump(k);}));
+  let s = '';
+  wires.forEach(w=>{
+    const I = sim.wireI.get(w.id)||0, isSel = sel&&sel.t==='w'&&sel.id===w.id;
+    s += `<line class="wire${isSel?' sel':''}" x1="${w.x1}" y1="${w.y1}" x2="${w.x2}" y2="${w.y2}"/>`;
+    if(Math.abs(I)>1e-9){
+      const rev = I<0;
+      s += `<line class="flow" x1="${rev?w.x2:w.x1}" y1="${rev?w.y2:w.y1}" x2="${rev?w.x1:w.x2}" y2="${rev?w.y1:w.y2}" ${flowAttrs(I)}/>`;
+    }
+    s += `<line data-wire="${w.id}" x1="${w.x1}" y1="${w.y1}" x2="${w.x2}" y2="${w.y2}" stroke="transparent" stroke-width="14" style="cursor:pointer"/>`;
+  });
+  // wire end points: junction dots, free ends, and start points for new wires
+  const done = new Set();
+  wires.forEach(w=>[[w.x1,w.y1],[w.x2,w.y2]].forEach(([x,y])=>{
+    const k = key(x,y); if(done.has(k)||termKeys.has(k)) return; done.add(k);
+    const d = deg.get(k);
+    if(d>=3) s += `<circle cx="${x}" cy="${y}" r="5" fill="var(--termc)" pointer-events="none"/>`;
+    else if(d===1) s += `<circle cx="${x}" cy="${y}" r="4" fill="var(--bg)" stroke="var(--amp)" stroke-width="2" pointer-events="none"/>`;
+    s += `<circle data-pt="${k}" cx="${x}" cy="${y}" r="8" fill="transparent" style="cursor:crosshair"/>`;
+  }));
+  const kv = kvlActive();
+  comps.forEach(c=>{
+    const r = sim.res.get(c.id) || {I:0,V:0,P:0};
+    const isSel = sel&&sel.t==='c'&&sel.id===c.id, hl = half(c);
+    s += `<g class="comp" data-comp="${c.id}"><g transform="translate(${c.x},${c.y}) rotate(${c.rot*45})">`;
+    s += symbol(c,r);
+    if(isSel){ const sr = c.type==='kwh' ? [-56,-50,112,94] : [-hl-6,-26,2*hl+12,52]; s += `<rect x="${sr[0]}" y="${sr[1]}" width="${sr[2]}" height="${sr[3]}" rx="8" fill="none" stroke="var(--selc)" stroke-width="1.5" stroke-dasharray="5 4" pointer-events="none"/>`; }
+    if(kv && kv.set.has(c.id) && c.type!=='kwh') s += `<rect x="${-hl-8}" y="-28" width="${2*hl+16}" height="56" rx="10" fill="none" stroke="var(--accent)" stroke-width="${kv.cur===c.id?5:2.5}" opacity="${kv.cur===c.id?1:.55}" pointer-events="none"/>`;
+    s += `<rect x="-34" y="-20" width="68" height="40" fill="transparent"/></g>`;
+    s += label(c,r) + polarityMark(c) + `</g>`;
+  });
+  comps.forEach(c=>terms(c).forEach(t=>{
+    const k = key(t.x,t.y);
+    s += `<circle class="termhit" data-term="${k}" cx="${t.x}" cy="${t.y}" r="10"/><circle class="term" cx="${t.x}" cy="${t.y}" r="4.5"/>`;
+  }));
+  if(drag && drag.kind==='wire'){
+    s += `<path d="${routePath(drag)}" fill="none" stroke="var(--volt)" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+    s += `<circle cx="${drag.x2}" cy="${drag.y2}" r="5" fill="var(--volt)" pointer-events="none"/>`;
+  }
+  scene.innerHTML = s;
+  renderPower();
+  const st = $('#status');
+  if(sim.warn.length){ st.className='status warn'; st.textContent = sim.warn[0]; }
+  else if(sim.info.length){ st.className='status info'; st.textContent = sim.info[0]; }
+  else { st.className='status info'; st.textContent = ''; }
+}
+
+/* ---------- properties panel ---------- */
+function renderPower(){
+  const el = $('#pbar'), p = sim && sim.power;
+  if(masked()){ el.innerHTML = '<span class="muted">โหมดทำนาย: ซ่อนสมดุลกำลังไว้ก่อน กด "เฉลย" เพื่อดู</span>'; return; }
+  if(!p || sim.error || (Math.abs(p.emf)<1e-6 && p.used<1e-6)){ el.innerHTML = '<span class="muted">ต่อวงจรให้ครบ แล้วจะเห็นสมดุลของกำลังที่นี่</span>'; return; }
+  const ok = Math.abs(p.emf-(p.used+p.loss)) <= 1e-6+1e-3*Math.abs(p.emf);
+  el.innerHTML = `<span>กำลังรวมจากแบตเตอรี่ (ε·I) <b>${fV(p.emf)} W</b></span><span class="eq">=</span><span>ใช้ในอุปกรณ์ <b>${fV(p.used)} W</b></span><span class="eq">+</span><span>สูญเสียในแบตเตอรี่ <b>${fV(p.loss)} W</b></span>${ok?'<span class="tick">✓ กำลังสมดุล</span>':''}`;
+}
+function renderPanel(){
+  const p = $('#props');
+  if(!sel){
+    p.innerHTML = `<h2>ชิ้นส่วนที่เลือก</h2><p class="muted" style="margin:0">คลิกชิ้นส่วนหรือสายบนกระดานเพื่อปรับค่าและดูกระแส ความต่างศักย์ และกำลัง</p>
+      <p class="muted" style="margin:0">ลองเริ่มจากวงจรตัวอย่างทางซ้าย แล้วหยิบมิเตอร์มาต่อเพิ่ม</p>`;
+    return;
+  }
+  if(sel.t==='w'){
+    p.innerHTML = `<h2>สายไฟ</h2><div class="live" id="live"></div><button class="btn danger" id="del">ลบสาย</button>`;
+    $('#del').onclick = removeSel; updateLive(); return;
+  }
+  const c = getComp(sel.id), t = TYPES[c.type];
+  let h = `<h2>${t.name}</h2>`;
+  gesture = false;
+  if(c.type==='kwh'){
+    h += `<div class="ctl"><label for="nkr">ราคาต่อหน่วย (ตั้งเอง)</label><input type="range" id="kr" aria-label="เลื่อนปรับค่า" min="1" max="10" step="0.25" value="${c.rate}"><input type="number" id="nkr" inputmode="decimal" step="any" value="${c.rate}"><span class="unit">฿</span></div>`;
+    h += `<div class="ctl"><label for="nkh">ใช้วันละ</label><input type="range" id="kh" aria-label="เลื่อนปรับค่า" min="0.5" max="24" step="0.5" value="${c.hours}"><input type="number" id="nkh" inputmode="decimal" step="any" value="${c.hours}"><span class="unit">ชม.</span></div>`;
+    h += `<div class="ctl"><label for="nkd">จำนวนวัน</label><input type="range" id="kd" aria-label="เลื่อนปรับค่า" min="1" max="90" step="1" value="${c.days}"><input type="number" id="nkd" inputmode="decimal" step="any" value="${c.days}"><span class="unit">วัน</span></div>`;
+    h += `<div class="row2"><button class="btn" id="clkRun"></button><button class="btn" id="clkReset">รีเซ็ตมิเตอร์</button></div>`;
+    h += `<div class="ctl"><label for="clkSpd">ความเร็วเวลา</label><select id="clkSpd" style="grid-column:1/-1;background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit"><option value="3600">1 วินาที = 1 ชั่วโมง</option><option value="86400">1 วินาที = 1 วัน</option></select></div>`;
+  }
+  if(t.unit && c.type!=='lamp') h += `<div class="ctl"><label for="nval">${c.type==='battery'?'แรงเคลื่อนไฟฟ้า ε':'ความต้านทาน R'}</label><input type="range" id="val" aria-label="เลื่อนปรับค่า" min="${t.min}" max="${t.max}" step="${t.step}" value="${c.val}"><input type="number" id="nval" inputmode="decimal" step="any" value="${c.val}"><span class="unit">${t.unit}</span></div>`;
+  if(c.type==='lamp'||c.type==='fan'){
+    if(c.type==='lamp') h += `<div class="row2"><button class="btn" id="mRated" aria-pressed="${c.mode==='rated'}">พิกัด V / W</button><button class="btn" id="mOhm" aria-pressed="${c.mode==='ohm'}">ความต้านทาน Ω</button></div>`;
+    if(c.type==='fan'||c.mode==='rated'){
+      h += `<div class="ctl"><label for="nlv">แรงดันพิกัด</label><input type="range" id="lv" aria-label="เลื่อนปรับค่า" min="1" max="240" step="1" value="${c.ratedV}"><input type="number" id="nlv" inputmode="decimal" step="any" value="${c.ratedV}"><span class="unit">V</span></div>`;
+      h += `<div class="ctl"><label for="nlp">กำลังพิกัด</label><input type="range" id="lp" aria-label="เลื่อนปรับค่า" min="0.5" max="100" step="0.5" value="${c.ratedP}"><input type="number" id="nlp" inputmode="decimal" step="any" value="${c.ratedP}"><span class="unit">W</span></div>`;
+    }else{
+      h += `<div class="ctl"><label for="nlr">ความต้านทาน R</label><input type="range" id="lr" aria-label="เลื่อนปรับค่า" min="1" max="100" step="1" value="${c.val}"><input type="number" id="nlr" inputmode="decimal" step="any" value="${c.val}"><span class="unit">Ω</span></div>`;
+    }
+    if(c.type==='lamp') h += `<button class="btn" id="repl">เปลี่ยนหลอดใหม่</button>`;
+  }
+  if(c.type==='battery') h += `<div class="ctl"><label for="nrin">ความต้านทานภายใน r</label><input type="range" id="rin" aria-label="เลื่อนปรับค่า" min="0" max="5" step="0.1" value="${c.r}"><input type="number" id="nrin" inputmode="decimal" step="any" value="${c.r}"><span class="unit">Ω</span></div>`;
+  if(c.type==='battery') h += `<div class="row2"><button class="btn" id="kvlNext"></button><button class="btn" id="kvlAll">ดูทั้งวง</button></div><button class="btn" id="kvlOff">ล้างการเดิน KVL</button>`;
+  if(c.type==='switch') h += `<button class="btn" id="tgl"></button>`;
+  h += (c.type==='kwh' ? '' : `<div class="row2"><button class="btn" id="rot">หมุน 90° (R)</button><button class="btn" id="rot45">หมุน 45°</button></div>`) + `<button class="btn danger" id="del">ลบ</button><div class="live" id="live"></div>`;
+  p.innerHTML = h;
+  if(t.unit && c.type!=='lamp'){
+    const hi = c.type==='battery' ? 250 : 100000;
+    bindValue('val','nval',0.1,hi,()=>c.val,v=>{c.val=v;});
+  }
+  if(c.type==='lamp'||c.type==='fan'){
+    if(c.type==='lamp'){
+      const setMode = m => { checkpoint(); c.mode=m; renderScene(); renderPanel(); };
+      $('#mRated').onclick = ()=>setMode('rated'); $('#mOhm').onclick = ()=>setMode('ohm');
+      $('#repl').onclick = ()=>{ if(!c.burnt) return; checkpoint(); c.burnt=false; renderScene(); renderPanel(); };
+    }
+    if(c.type==='fan'||c.mode==='rated'){
+      bindValue('lv','nlv',0.1,1000,()=>c.ratedV,v=>{c.ratedV=v;});
+      bindValue('lp','nlp',0.1,1000,()=>c.ratedP,v=>{c.ratedP=v;});
+    }else bindValue('lr','nlr',0.1,100000,()=>c.val,v=>{c.val=v;});
+  }
+  if(c.type==='battery') bindValue('rin','nrin',0,50,()=>c.r,v=>{c.r=v;});
+  if(c.type==='battery'){
+    const nx=$('#kvlNext'), setNx=()=>{ nx.textContent = (kvl&&kvl.id===c.id&&kvl.step>0) ? 'ชิ้นถัดไป ▶' : '▶ เดิน KVL ทีละชิ้น'; };
+    const go=mode=>{
+      const T=kvlTerms(c), n=(T&&T.terms)?T.terms.length:0;
+      if(mode==='off') kvl=null;
+      else { if(!kvl||kvl.id!==c.id) kvl={id:c.id,step:0}; kvl.step = mode==='all' ? n : Math.min(n,kvl.step+1); }
+      setNx(); renderScene(); updateLive();
+    };
+    setNx(); nx.onclick=()=>go('next'); $('#kvlAll').onclick=()=>go('all'); $('#kvlOff').onclick=()=>go('off');
+  }
+  if(c.type==='switch'){ const b=$('#tgl'); const set=()=>b.textContent = c.closed?'เปิดสวิตช์':'ปิดสวิตช์'; set(); b.onclick=()=>{ checkpoint(); c.closed=!c.closed; set(); renderScene(); updateLive(); }; }
+  if(c.type!=='kwh'){ $('#rot').onclick = ()=>rotateSel(2); $('#rot45').onclick = ()=>rotateSel(1); }
+  $('#del').onclick = removeSel;
+  if(c.type==='kwh'){
+    bindValue('kr','nkr',0,1000,()=>c.rate,v=>{c.rate=v;});
+    bindValue('kh','nkh',0,24,()=>c.hours,v=>{c.hours=v;});
+    bindValue('kd','nkd',0,3650,()=>c.days,v=>{c.days=v;});
+    const run = $('#clkRun'), setRun = ()=>{ run.textContent = clock.running ? '⏸ หยุดเดิน' : '▶ เดินมิเตอร์'; };
+    setRun(); run.onclick = ()=>{ clock.running = !clock.running; setRun(); };
+    $('#clkReset').onclick = ()=>{ clock.kwh=0; clock.hours=0; renderScene(); updateLive(); };
+    const sp = $('#clkSpd'); sp.value = String(clock.speed); sp.onchange = ()=>{ clock.speed = +sp.value; };
+  }
+  updateLive();
+}
+function bindValue(sid,nid,lo,hi,get,set){
+  const sl=$('#'+sid), nu=$('#'+nid);
+  const apply = v => { if(!gesture){ checkpoint(); gesture=true; } set(v); renderScene(); updateLive(); };
+  sl.oninput = () => { const v=+sl.value; nu.value=v; apply(v); };
+  nu.oninput = () => { const v=parseFloat(nu.value); if(!isFinite(v)||v<lo||v>hi) return; sl.value=v; apply(v); };
+  sl.onchange = () => { gesture=false; };
+  nu.onchange = () => {
+    gesture = false;
+    let v = parseFloat(nu.value); if(!isFinite(v)) v = get();
+    v = Math.min(hi,Math.max(lo,v));
+    if(v!==get()){ checkpoint(); set(v); renderScene(); updateLive(); }
+    nu.value = get(); sl.value = get();
+  };
+  nu.onkeydown = e => { if(e.key==='Enter') nu.blur(); };
+}
+let kvl = null;   // {id, step}: KVL walk around the loop of one battery
+function nameOf(c){ const same=comps.filter(o=>o.type===c.type); return TYPES[c.type].name+(same.length>1?' '+(same.indexOf(c)+1):''); }
+function kvlTerms(b){
+  if(!sim||!sim.tinfo) return null;
+  const ti = sim.tinfo.get(b.id); if(!ti) return null;
+  const Vn = sim.Vn, edges=[];
+  comps.forEach(o=>{
+    if(o===b||o.type==='kwh'||o.type==='voltmeter') return;
+    if(o.type==='switch'&&!o.closed) return; if(o.type==='lamp'&&o.burnt) return;
+    const t = sim.tinfo.get(o.id); if(!t||t.na===t.nb) return; edges.push({o,u:t.na,v:t.nb});
+  });
+  const start=ti.nb, goal=ti.na, prev=new Map([[start,null]]), q=[start];
+  while(q.length && !prev.has(goal)){
+    const x=q.shift();
+    edges.forEach(e=>{ const y = e.u===x ? e.v : e.v===x ? e.u : null; if(y!==null && !prev.has(y)){ prev.set(y,{x,e}); q.push(y); } });
+  }
+  if(!prev.has(goal) && start!==goal) return {open:true};
+  const path=[]; for(let y=goal; prev.get(y); y=prev.get(y).x){ const {x,e}=prev.get(y); path.unshift({o:e.o,x,y}); }
+  const terms=[{name:nameOf(b)+' (ε)',d:b.val,o:b}];
+  if(b.r>0) terms.push({name:'r ภายในแบตเตอรี่',d:-(b.val-(Vn(ti.nb)-Vn(ti.na))),o:b});
+  path.forEach(st=>terms.push({name:nameOf(st.o),d:Vn(st.y)-Vn(st.x),o:st.o}));
+  let L=0; terms.forEach(t=>{ L+=t.d; t.level=L; });
+  return {terms, sum:L};
+}
+function kvlActive(){
+  if(!kvl||!sel||sel.t!=='c'||sel.id!==kvl.id) return null;
+  const b=getComp(kvl.id); if(!b) return null;
+  const T=kvlTerms(b); if(!T||T.open) return null;
+  const set=new Set(), cur=kvl.step>0?T.terms[Math.min(kvl.step,T.terms.length)-1].o.id:null;
+  T.terms.slice(0,kvl.step).forEach(t=>set.add(t.o.id));
+  return {set,cur};
+}
+function kvlHtml(b){
+  const T=kvlTerms(b), fs=v=>Math.abs(v)<0.005?'0 V':(v>=0?'+':'−')+fV(Math.abs(v))+' V';
+  const full = 'grid-column:1/-1';
+  if(!T) return '';
+  if(T.open) return `<span class="muted" style="${full};margin-top:6px">ยังไม่มีทางวนกลับขั้วลบ วงจรยังไม่ครบ จึงเดิน KVL ไม่ได้</span>`;
+  let h=`<span style="${full};margin-top:8px;font-weight:600">เดินวง KVL (เริ่มที่ขั้วลบ = 0 V)</span>`;
+  T.terms.slice(0,kvl.step).forEach((t,i)=>{
+    h += `<span>${i+1}. ${t.name}<br><span class="muted">ศักย์ถึง ${fV(t.level)} V</span></span><span style="color:${t.d>=0?'var(--accent)':'var(--muted)'}">${fs(t.d)}</span>`;
+  });
+  if(kvl.step===0) h += `<span class="muted" style="${full}">กด "ชิ้นถัดไป" เพื่อเดินทีละชิ้น ดูว่าศักย์ขึ้นหรือลงเท่าไร</span>`;
+  if(kvl.step>=T.terms.length){
+    h += `<span style="${full};border-top:1px solid var(--line);padding-top:6px">รวมทั้งวง ΣΔV</span><span>${Math.abs(T.sum)<0.005?'0':fV(T.sum)} V</span>`;
+    h += `<span class="muted" style="${full}">เดินครบรอบแล้วกลับมาที่ศักย์เดิม ผลรวมการขึ้นและลงจึงเป็นศูนย์ (กฎของเคียร์ชอฟฟ์ข้อ 2)</span>`;
+    const lv=[0].concat(T.terms.map(t=>t.level)), mn=Math.min.apply(null,lv), mx=Math.max.apply(null,lv);
+    if(mn>=-1e-9 && mx>0) h += `<div style="${full}">`+miniGraph({xmax:T.terms.length,ymax:mx,pts:lv.map((v,i)=>[i,v]),dot:null,xl:'ลำดับชิ้นส่วนที่เดินผ่าน',title:'ศักย์ไฟฟ้ารอบวง (V)'})+`</div>`;
+  }
+  return h;
+}
+function miniGraph(o){ // o:{xmax,ymax,pts:[[x,y]..],dot:[x,y]|null,xl,yl,title}
+  const W=250,H=135,l=34,b=24,t=18,rr=8,pw=W-l-rr,ph=H-t-b;
+  const X=v=>l+Math.max(0,Math.min(1,v/o.xmax))*pw, Y=v=>t+ph-Math.max(0,Math.min(1,v/o.ymax))*ph;
+  const f=v=>v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2);
+  const d=o.pts.map((q,i)=>(i?'L':'M')+X(q[0]).toFixed(1)+' '+Y(q[1]).toFixed(1)).join('');
+  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${o.title}" style="display:block;font-size:10px">
+   <text x="${l}" y="11" style="fill:var(--text);font-weight:600">${o.title}</text>
+   <line x1="${l}" y1="${t+ph}" x2="${l+pw}" y2="${t+ph}" stroke="var(--muted)"/><line x1="${l}" y1="${t}" x2="${l}" y2="${t+ph}" stroke="var(--muted)"/>
+   <text x="${l}" y="${H-12}" text-anchor="middle" style="fill:var(--muted)">0</text><text x="${l+pw}" y="${H-12}" text-anchor="end" style="fill:var(--muted)">${f(o.xmax)}</text>
+   <text x="${l-4}" y="${t+4}" text-anchor="end" style="fill:var(--muted)">${f(o.ymax)}</text><text x="${l-4}" y="${t+ph}" text-anchor="end" style="fill:var(--muted)">0</text>
+   <text x="${l+pw/2}" y="${H-2}" text-anchor="middle" style="fill:var(--muted)">${o.xl}</text>
+   <path d="${d}" fill="none" stroke="var(--c-battery)" stroke-width="2"/>`;
+  if(o.dot){ const x=X(o.dot[0]),y=Y(o.dot[1]); g+=`<line x1="${x}" y1="${y}" x2="${x}" y2="${t+ph}" stroke="var(--accent)" stroke-dasharray="3 3"/><line x1="${l}" y1="${y}" x2="${x}" y2="${y}" stroke="var(--accent)" stroke-dasharray="3 3"/><circle cx="${x}" cy="${y}" r="4.5" fill="var(--accent)"/>`; }
+  return g+'</svg>';
+}
+function batGraphs(c,r){
+  const E=c.val, rin=c.r||0, I=Math.max(0,r.I||0), V=r.V||0, n=40;
+  if(!(E>0)) return '';
+  let h='';
+  // 1) V-I of the battery terminals: V = E - I r
+  const imax = rin>0.01 ? E/rin : Math.max(1,2*I);
+  const p1=[]; for(let i=0;i<=n;i++){ const x=imax*i/n; p1.push([x,E-x*rin]); }
+  h += `<div style="grid-column:1/-1;margin-top:6px">`+miniGraph({xmax:imax,ymax:E,pts:p1,dot:[I,V],xl:'I (A)',title:'V ที่ขั้ว เทียบ กระแส I  (V = ε − Ir)'})
+     + `<span class="muted">${rin>0?'ความชันของเส้น = −r จุดสีคือสภาพวงจรตอนนี้':'r = 0 จึงเป็นเส้นระดับ V = ε เสมอ ลองเพิ่ม r ดู'}</span></div>`;
+  // 2) output power vs external resistance: P = E^2 R/(R+r)^2
+  if(rin>0.01){
+    const Rext = I>1e-9 ? V/I : Infinity, rmax = Math.max(4*rin, isFinite(Rext)?Math.min(Rext*1.2,40*rin):0);
+    const pm=E*E/(4*rin), p2=[]; for(let i=0;i<=n;i++){ const R=rmax*i/n; p2.push([R,E*E*R/((R+rin)*(R+rin))]); }
+    h += `<div style="grid-column:1/-1;margin-top:8px">`+miniGraph({xmax:rmax,ymax:pm*1.05,pts:p2,dot:isFinite(Rext)?[Rext,r.P]:null,xl:'R ภายนอก (Ω)',title:'กำลังที่จ่ายออก P เทียบ R ภายนอก'})
+       + `<span class="muted">P สูงสุดเมื่อ R ภายนอก = r (${fV(rin)} Ω) ได้ ${fV(pm)} W ตอนนั้นประสิทธิภาพเหลือ 50 %</span></div>`;
+  }
+  return h;
+}
+function updateLive(){
+  const live = $('#live'); if(!live||!sel||!sim) return;
+  if(masked()){ live.innerHTML = '<span class="muted" style="grid-column:1/-1">โหมดทำนาย: ค่า V, I, P ที่วัดได้ถูกซ่อนไว้ ลองคำนวณก่อน แล้วกด "เฉลย" ที่เหนือกระดาน</span>'; return; }
+  const row = (a,b) => `<span>${a}</span><span>${b}</span>`;
+  if(sel.t==='w'){
+    const I = sim.wireI.get(sel.id)||0;
+    live.innerHTML = row('กระแสในสาย', fI(Math.abs(I))+' A'); return;
+  }
+  const c = getComp(sel.id); if(!c) return;
+  const r = sim.res.get(c.id) || {I:0,V:0,P:0};
+  let h = '';
+  if(c.type==='kwh'){
+    const P = sim.power ? Math.max(0,sim.power.used) : 0, E = P/1000*c.hours*c.days;
+    const cnt = {}, loads = comps.filter(o=>o.type==='resistor'||o.type==='lamp'||o.type==='fan').map(o=>{
+      cnt[o.type] = (cnt[o.type]||0)+1;
+      const pr = (sim.res.get(o.id)||{P:0}).P;
+      return row(TYPES[o.type].name+' '+cnt[o.type], `${fV(pr)} W · ${(pr/1000*c.hours*c.days*c.rate).toFixed(2)} บาท`);
+    }).join('');
+    h = row('กำลังรวมของวงจร',fV(P)+' W')+row('พลังงานต่อ 1 ชั่วโมง',(P/1000).toFixed(4)+' หน่วย')
+      + row(`ใช้ ${c.hours} ชม./วัน × ${c.days} วัน`,E.toFixed(2)+' หน่วย')+row('ค่าไฟโดยประมาณ',(E*c.rate).toFixed(2)+' บาท')
+      + (loads ? `<span class="muted" style="grid-column:1/-1;margin-top:4px">แยกตามอุปกรณ์ (ช่วงเวลาเดียวกัน)</span>`+loads : '')
+      + `<span class="muted" style="grid-column:1/-1;margin-top:4px">มิเตอร์ที่เดินอยู่</span>`
+      + row('เวลาที่เดินไป',clock.hours.toFixed(1)+' ชม.')+row('มิเตอร์อ่านได้',clock.kwh.toFixed(3)+' หน่วย')+row('ค่าไฟที่เดินมา',(clock.kwh*c.rate).toFixed(2)+' บาท')
+      + `<span class="muted" style="grid-column:1/-1">1 หน่วย = 1 kWh = ใช้กำลัง 1 kW นาน 1 ชั่วโมง ราคาต่อหน่วยเป็นค่าสมมติ ตั้งเองได้ มิเตอร์นี้วัดกำลังของทุกอุปกรณ์บนกระดาน</span>`;
+  }else if(c.type==='battery'){
+    const rin = Math.max(c.r||0,1e-3), loss = r.I*r.I*rin;
+    h = row('ε',c.val+' V')+row('กระแสที่จ่าย I',fI(r.I)+' A')+row('V ที่ขั้ว',fV(r.V)+' V')
+      + row('กำลังที่จ่ายออก',fV(r.P)+' W')+row('สูญเสียใน r (I²r)',fV(loss)+' W');
+    if(r.I>1e-6 && c.val>0) h += row('ประสิทธิภาพ V/ε',(100*r.V/c.val).toFixed(1)+' %');
+    if(c.r>0) h += row('V = ε − Ir',`${c.val} − ${(r.I*c.r).toFixed(2)} = ${fV(r.V)}`);
+    if(kvl && kvl.id===c.id) h += kvlHtml(c);
+    h += batGraphs(c,r);
+  }else if(c.type==='fan'){
+    const F = fanInfo(c,r), R = compR(c);
+    h = row('R',R.toFixed(R<10?2:1)+' Ω')+row('V คร่อม',r.V===null?'—':fV(Math.abs(r.V))+' V')+row('กระแส I',fI(Math.abs(r.I))+' A')+row('กำลังจริง P',fV(r.P)+' W')
+      + row('เทียบพิกัด',Math.round(100*F.ratio)+' %')+row('สถานะ',F.state)
+      + `<span class="muted" style="grid-column:1/-1">แบบจำลองอย่างง่าย: ถือว่าพัดลมหมุนเร็วตามกำลังที่ได้รับ (มอเตอร์จริงมีแรงเคลื่อนไฟฟ้าย้อนกลับ ซึ่งเรียนต่อในบทแม่เหล็กไฟฟ้า)</span>`;
+  }else if(c.type==='lamp'){
+    const L = lampInfo(c,r), R = compR(c);
+    h = row('R',R.toFixed(R<10?2:1)+' Ω')+row('V คร่อม',r.V===null?'—':fV(Math.abs(r.V))+' V')+row('กระแส I',fI(Math.abs(r.I))+' A')+row('กำลังจริง P',fV(r.P)+' W');
+    if(c.mode==='rated') h += row('เทียบพิกัด',c.burnt?'—':Math.round(100*L.ratio)+' %');
+    h += row('สถานะ',L.state)+`<span class="muted" style="grid-column:1/-1">หลอดขาดเมื่อกำลังเกิน ${BURN} เท่าของพิกัด (ค่าสมมติของโปรแกรม)</span>`;
+    const rb = $('#repl'); if(rb) rb.disabled = !c.burnt;
+  }else if(c.type==='resistor'){
+    h = row('V คร่อม',fV(r.V)+' V')+row('กระแส I',fI(r.I)+' A')+row('กำลัง P',fV(r.P)+' W');
+  }else if(c.type==='switch'){
+    h = row('สถานะ',c.closed?'ปิด (กระแสผ่าน)':'เปิด (กระแสไม่ผ่าน)')+row('กระแส',fI(r.I)+' A')+(c.closed?'':row('V คร่อม',r.V===null?'—':fV(r.V)+' V'));
+  }else if(c.type==='ammeter'){
+    h = row('อ่านค่า',fI(r.I)+' A')+`<span class="muted" style="grid-column:1/-1">ต่ออนุกรมกับส่วนที่ต้องการวัด เครื่องหมาย + คือด้านที่กระแสไหลเข้า</span>`;
+  }else{
+    h = row('อ่านค่า',r.V===null?'—':fV(r.V)+' V')+`<span class="muted" style="grid-column:1/-1">ต่อขนานคร่อมส่วนที่ต้องการวัด ขั้ว + คือด้านที่ศักย์สูงกว่าเมื่อค่าเป็นบวก</span>`;
+  }
+  live.innerHTML = h;
+}
+
+function render(panel){ renderScene(); if(panel) renderPanel(); else updateLive(); }
+
+/* ---------- actions ---------- */
+function attachments(c){
+  const others = new Set();
+  comps.forEach(o=>{ if(o!==c) terms(o).forEach(t=>others.add(key(t.x,t.y))); });
+  const list = [];
+  terms(c).forEach((t,ti)=>{
+    const k = key(t.x,t.y); if(others.has(k)) return;
+    wires.forEach(w=>{ if(key(w.x1,w.y1)===k) list.push({id:w.id,end:1,ti}); if(key(w.x2,w.y2)===k) list.push({id:w.id,end:2,ti}); });
+  });
+  return list;
+}
+function followWires(c,att){
+  const T = terms(c);
+  att.forEach(a=>{
+    const w = wires.find(q=>q.id===a.id); if(!w) return;
+    if(a.end===1){ w.x1=T[a.ti].x; w.y1=T[a.ti].y; } else { w.x2=T[a.ti].x; w.y2=T[a.ti].y; }
+  });
+}
+function rotateSel(step=2){ if(!sel||sel.t!=='c') return; const c=getComp(sel.id); if(c.type==='kwh') return; checkpoint(); const att=attachments(c); c.rot=(c.rot+step)%8; clampComp(c); followWires(c,att); normalize(); render(true); }
+function removeSel(){
+  if(!sel) return;
+  checkpoint();
+  if(sel.t==='c') comps = comps.filter(c=>c.id!==sel.id); else wires = wires.filter(w=>w.id!==sel.id);
+  sel = null; normalize(); render(true);
+}
+function clampComp(c){
+  const ext = c.type==='kwh' ? [50,44] : [Math.abs(OFF[c.rot][0])+20, Math.abs(OFF[c.rot][1])+20];   // half-width, half-height incl. terminals
+  c.x = Math.min(W-ext[0]-20, Math.max(ext[0]+20, c.x));
+  c.y = Math.min(H-ext[1]-20, Math.max(ext[1]+20, c.y));
+}
+function spawn(type){
+  let pos = null;
+  outer: for(let y=400;y>=60;y-=60) for(let x=100;x<=660;x+=100){
+    if(!comps.some(c=>Math.abs(c.x-x)<100 && Math.abs(c.y-y)<50)){ pos=[x,y]; break outer; }
+  }
+  pos = pos || [380,400];
+  checkpoint();
+  const c = addComp(type,pos[0],pos[1],0);
+  sel = {t:'c',id:c.id}; normalize(); render(true);
+}
+function clearAll(){ checkpoint(); comps=[]; wires=[]; sel=null; render(true); }
+
+function example(name){
+  clearAll();
+  const w = (...a)=>addWire(...a);
+  if(name==='series'){
+    const bt=addComp('battery',160,240,6), r1=addComp('resistor',300,140,0), r2=addComp('resistor',460,140,0);
+    r1.val=10; r2.val=20; addComp('ammeter',360,340,4); addComp('voltmeter',300,220,0);
+    w(160,200,160,140); w(160,140,260,140); w(340,140,420,140); w(500,140,560,140); w(560,140,560,340); w(560,340,400,340); w(320,340,160,340); w(160,340,160,280);
+    w(260,140,260,220); w(340,140,340,220);
+  }else if(name==='parallel'){
+    addComp('battery',160,240,6); addComp('ammeter',220,140,0);
+    [[280,10],[400,20],[520,30]].forEach(([x,v])=>{ addComp('resistor',x,240,2).val=v; });
+    w(160,200,160,140); w(160,140,180,140); w(260,140,520,140);
+    w(160,280,160,340); w(160,340,520,340);
+    [280,400,520].forEach(x=>{ w(x,140,x,200); w(x,280,x,340); });
+  }else if(name==='bill'){
+    addComp('battery',160,240,6).val=220;
+    const lp=addComp('lamp',300,240,2); lp.ratedV=220; lp.ratedP=60;
+    const fn=addComp('fan',400,240,2); fn.ratedV=220; fn.ratedP=50;
+    addComp('resistor',500,240,2).val=48.4; addComp('ammeter',230,120,0); addComp('kwh',650,240,0);
+    w(160,200,160,120); w(160,120,190,120); w(270,120,500,120); w(160,280,160,360); w(160,360,500,360);
+    [300,400,500].forEach(x=>{ w(x,120,x,200); w(x,280,x,360); });
+  }else if(name==='fan'){
+    addComp('battery',160,240,6); addComp('resistor',300,140,0).val=10; addComp('fan',460,140,0); addComp('ammeter',360,340,4);
+    w(160,200,160,140); w(160,140,260,140); w(340,140,420,140); w(500,140,560,140); w(560,140,560,340); w(560,340,400,340); w(320,340,160,340); w(160,340,160,280);
+  }else if(name==='lamps'){
+    addComp('battery',100,240,6);
+    addComp('lamp',180,120,0); addComp('lamp',300,120,0);
+    w(100,200,100,120); w(100,120,140,120); w(220,120,260,120); w(340,120,380,120); w(380,120,380,360); w(380,360,100,360); w(100,360,100,280);
+    addComp('battery',480,240,6);
+    addComp('lamp',580,240,2); addComp('lamp',680,240,2);
+    w(480,200,480,120); w(480,120,680,120); w(480,280,480,360); w(480,360,680,360);
+    w(580,120,580,200); w(580,280,580,360); w(680,120,680,200); w(680,280,680,360);
+  }else if(name==='mix'){
+    addComp('battery',160,240,6).val=12; addComp('resistor',260,140,0).val=4; addComp('ammeter',360,140,0);
+    addComp('resistor',440,240,2).val=6; addComp('resistor',560,240,2).val=3;
+    w(160,200,160,140); w(160,140,220,140); w(300,140,320,140); w(400,140,560,140);
+    [440,560].forEach(x=>{ w(x,140,x,200); w(x,280,x,340); }); w(160,280,160,340); w(160,340,560,340);
+  }else if(name==='rint'){
+    const b=addComp('battery',160,240,6); b.val=12; b.r=2; addComp('resistor',360,140,0).val=10; addComp('voltmeter',240,240,2);
+    w(160,200,160,140); w(160,140,320,140); w(400,140,500,140); w(500,140,500,340); w(500,340,160,340); w(160,340,160,280);
+    w(240,140,240,200); w(240,280,240,340);
+  }else if(name==='kirch'){
+    addComp('battery',160,240,6).val=12; addComp('battery',560,240,6).val=6;
+    addComp('resistor',260,140,0).val=4; addComp('resistor',460,140,0).val=2; addComp('resistor',360,240,2).val=6;
+    w(160,200,160,140); w(160,140,220,140); w(300,140,420,140); w(500,140,560,140); w(560,140,560,200);
+    w(360,140,360,200); w(360,280,360,340); w(160,280,160,340); w(160,340,560,340); w(560,340,560,280);
+  }else if(name==='bridge'||name==='bridge2'){
+    addComp('battery',620,220,6).val=12;
+    addComp('resistor',320,160,3).val=10; addComp('resistor',440,160,1).val=20;
+    addComp('resistor',320,280,1).val=30; addComp('resistor',440,280,3).val=(name==='bridge2'?40:60);
+    addComp('ammeter',380,220,0);
+    w(380,100,620,100); w(620,100,620,180); w(620,260,620,340); w(620,340,380,340);
+    w(380,100,360,120); w(280,200,260,220); w(380,100,400,120); w(480,200,500,220);
+    w(260,220,280,240); w(360,320,380,340); w(500,220,480,240); w(400,320,380,340);
+    w(260,220,340,220); w(420,220,500,220);
+  }else{
+    addComp('battery',260,140,0); addComp('battery',420,140,0);
+    addComp('resistor',360,340,4); addComp('ammeter',160,240,6); addComp('voltmeter',360,260,4);
+    w(300,140,380,140); w(460,140,560,140); w(560,140,560,340); w(560,340,400,340); w(320,340,160,340);
+    w(160,340,160,280); w(160,200,160,140); w(160,140,220,140);
+    w(320,340,320,260); w(400,340,400,260);
+  }
+  normalize(); render(true);
+}
+
+/* ---------- pointer interaction ---------- */
+function lockEnd(x1,y1,px,py){
+  const dx=px-x1, dy=py-y1;
+  if(Math.hypot(dx,dy)<G/2) return [x1,y1];
+  const k = Math.round(Math.atan2(dy,dx)/(Math.PI/4)), ang = k*Math.PI/4, diag = Math.abs(k)%2===1;
+  const ux = Math.round(Math.cos(ang)), uy = Math.round(Math.sin(ang));
+  const proj = dx*Math.cos(ang)+dy*Math.sin(ang);
+  let n = Math.max(0,Math.round(proj/(diag ? G*Math.SQRT2 : G)));
+  while(n>0){ const x=x1+ux*G*n, y=y1+uy*G*n; if(x>=20&&x<=W-20&&y>=20&&y<=H-20) break; n--; }
+  return [x1+ux*G*n+0, y1+uy*G*n+0];
+}
+function pt(e){ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+function startWire(x,y,e){ drag={kind:'wire',x1:x,y1:y,x2:x,y2:y,before:snapshot()}; e.preventDefault(); renderScene(); }
+
+svg.addEventListener('pointerdown',e=>{
+  const p = pt(e), t = e.target;
+  const term = t.closest && t.closest('[data-term]');
+  if(term){ const [x,y]=term.dataset.term.split(',').map(Number); return startWire(x,y,e); }
+  const wp = t.closest && t.closest('[data-pt]');
+  if(wp){ const [x,y]=wp.dataset.pt.split(',').map(Number); return startWire(x,y,e); }
+  const ce = t.closest && t.closest('[data-comp]');
+  if(ce){
+    const c = getComp(+ce.dataset.comp); sel={t:'c',id:c.id};
+    drag = {kind:'comp',id:c.id,dx:p.x-c.x,dy:p.y-c.y,moved:false,before:snapshot(),att:e.altKey?[]:attachments(c)};
+    e.preventDefault(); return render(true);
+  }
+  if(tool==='wire') return startWire(snap(p.x),snap(p.y),e);
+  const we = t.closest && t.closest('[data-wire]');
+  if(we){ sel={t:'w',id:+we.dataset.wire}; return render(true); }
+  sel = null; render(true);
+});
+window.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  const p = pt(e);
+  if(drag.kind==='comp'){
+    const c = getComp(drag.id); if(!c) return;
+    const ox=c.x, oy=c.y; c.x=snap(p.x-drag.dx); c.y=snap(p.y-drag.dy); clampComp(c);
+    if(c.x!==ox||c.y!==oy){ drag.moved=true; followWires(c,drag.att); render(false); }
+  }else{
+    const straight = wireStraight !== e.shiftKey;
+    let x, y;
+    if(straight){ [x,y] = lockEnd(drag.x1,drag.y1,p.x,p.y); }
+    else { x=Math.min(W-20,Math.max(20,snap(p.x))); y=Math.min(H-20,Math.max(20,snap(p.y))); }
+    if(x!==drag.x2||y!==drag.y2||straight!==drag.straight){ drag.x2=x; drag.y2=y; drag.straight=straight; renderScene(); }
+  }
+});
+function endDrag(){
+  if(!drag) return;
+  const d = drag; drag = null;
+  if(d.kind==='wire'){
+    if(d.x1!==d.x2||d.y1!==d.y2){ addRoute(d.x1,d.y1,d.x2,d.y2,d.straight); normalize(); pushUndo(d.before); }
+  }else{
+    const c = getComp(d.id);
+    if(c && !d.moved && c.type==='switch'){ c.closed = !c.closed; pushUndo(d.before); }
+    else if(d.moved) pushUndo(d.before);
+    normalize();
+  }
+  render(true);
+}
+window.addEventListener('pointerup',endDrag);
+window.addEventListener('pointercancel',endDrag);
+let curTab = 'basics';
+document.addEventListener('keydown',e=>{
+  if(curTab!=='builder') return;
+  const mod = e.ctrlKey || e.metaKey;
+  if(mod && (e.code==='KeyZ' || e.code==='KeyY')){
+    if(e.target.closest && e.target.closest('input[type=number]')) return;
+    e.preventDefault();
+    (e.code==='KeyY' || e.shiftKey) ? redo() : undo(); return;
+  }
+  if(e.target.closest && e.target.closest('input')) return;
+  if(e.code==='KeyR' && !mod) rotateSel(e.shiftKey ? 1 : 2);
+  else if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); removeSel(); }
+  else if(e.key==='Escape'){ sel=null; render(true); }
+});
+
+/* ---------- init ---------- */
+$('#parts').innerHTML = Object.entries(TYPES).map(([k,t])=>`<button class="btn" data-add="${k}"><span class="sw" style="background:${t.color}"></span>${t.name}</button>`).join('');
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>spawn(b.dataset.add));
+document.querySelectorAll('[data-ex]').forEach(b=>b.onclick=()=>example(b.dataset.ex));
+$('#clear').onclick = clearAll;
+$('#toolWire').onclick = e=>{ tool = tool==='wire'?'select':'wire'; e.currentTarget.setAttribute('aria-pressed', tool==='wire'); };
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('[data-theme]').forEach(b=>{ if(b.tagName==='BUTTON') b.setAttribute('aria-pressed', b.dataset.theme===t); });
+  try{ localStorage.setItem('ktPhysTheme',t); }catch(e){}
+}
+document.querySelectorAll('button[data-theme]').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+let startTheme = document.documentElement.getAttribute('data-theme');
+try{ startTheme = localStorage.getItem('ktPhysTheme') || startTheme; }catch(e){}
+if(startTheme==='light'||startTheme==='blue'||startTheme==='dark') setTheme(startTheme);
+const rv = $('#btnReveal'), setRv = ()=>{ rv.hidden = !hideMode; rv.textContent = revealed ? 'ซ่อนอีกครั้ง' : 'เฉลย'; };
+const refreshAll = ()=>{ renderScene(); renderPower(); updateLive(); };
+$('#fHide').onchange = e=>{ hideMode=e.target.checked; revealed=false; setRv(); refreshAll(); };
+rv.onclick = ()=>{ revealed=!revealed; setRv(); refreshAll(); };
+['V','I','P'].forEach(k=>{ $('#f'+k).onchange = e=>{ show[k]=e.target.checked; renderScene(); }; });
+let lastTick = performance.now();
+setInterval(()=>{ const n=performance.now(), dt=Math.min(0.5,(n-lastTick)/1000); lastTick=n; clockStep(dt); },100);
+$('#undo').onclick = undo; $('#redo').onclick = redo;
+$('#toolDiag').onclick = e=>{ wireStraight = !wireStraight; e.currentTarget.setAttribute('aria-pressed', wireStraight); };
+example('series');
+undoS.length = 0; redoS.length = 0; updateHist();
+</script>
+<script>
+(function(){
+  const q = s => document.querySelector(s);
+  const SUP = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  const sci = x => { const e=Math.floor(Math.log10(x)), m=x/Math.pow(10,e); return m.toFixed(1).replace(/\.0$/,'')+'×10'+String(e).split('').map(ch=>SUP[ch]).join(''); };
+  const fR = R => R>=1000 ? (R/1000).toFixed(2)+' kΩ' : R>=1 ? R.toFixed(R>=10?1:2)+' Ω' : R>=0.001 ? (R*1000).toFixed(R>=0.01?1:2)+' mΩ' : (R*1e6).toFixed(1)+' µΩ';
+  const row = (a,b) => `<span>${a}</span><span>${b}</span>`;
+  function link(sl,nu,lo,hi,get,set){
+    const S=q('#'+sl), N=q('#'+nu);
+    S.oninput = ()=>{ set(+S.value); N.value=get(); draw(); };
+    N.oninput = ()=>{ const v=parseFloat(N.value); if(!isFinite(v)||v<lo||v>hi) return; S.value=v; set(v); draw(); };
+    N.onchange = ()=>{ let v=parseFloat(N.value); if(!isFinite(v)) v=get(); v=Math.min(hi,Math.max(lo,v)); set(v); N.value=get(); S.value=v; draw(); };
+    N.onkeydown = e=>{ if(e.key==='Enter') N.blur(); };
+    N.value=get(); S.value=get();
+  }
+  /* ---- two wires: R = rho L / A ---- */
+  const MATS = [
+    {n:'ทองแดง',rho:1.7e-8,c:'#c9783f'},{n:'อะลูมิเนียม',rho:2.8e-8,c:'#b9c0c9'},{n:'ทังสเตน',rho:5.6e-8,c:'#7f8088'},
+    {n:'เหล็ก',rho:1.0e-7,c:'#8d9196'},{n:'นิโครม',rho:1.1e-6,c:'#a89f92'}
+  ];
+  const wires = [{m:0,L:1,d:1},{m:4,L:1,d:1}], TAG = ['A','B'], COL = ['var(--accent)','var(--volt)'];
+  const lock = {L:true,D:false,M:false};
+  const matOpts = MATS.map((m,i)=>`<option value="${i}">${m.n}  (ρ = ${sci(m.rho)} Ω·m)</option>`).join('');
+  q('#wireCtl').innerHTML = [0,1].map(i=>`<div style="--tag:${COL[i]}">
+      <b style="color:${COL[i]}">เส้นลวด ${TAG[i]}</b>
+      <div class="ctl"><label for="wMat${i}">วัสดุ</label><select id="wMat${i}" style="grid-column:2/-1">${matOpts}</select></div>
+      <div class="ctl"><label for="nwL${i}">ความยาว L</label><input type="range" id="wL${i}" aria-label="เลื่อนปรับค่า" min="0.1" max="10" step="0.1"><input type="number" id="nwL${i}" inputmode="decimal" step="any"><span class="unit">m</span></div>
+      <div class="ctl"><label for="nwD${i}">เส้นผ่านศูนย์กลาง d</label><input type="range" id="wD${i}" aria-label="เลื่อนปรับค่า" min="0.1" max="2" step="0.05"><input type="number" id="nwD${i}" inputmode="decimal" step="any"><span class="unit">mm</span></div>
+    </div>`).join('');
+  const area = w => Math.PI*Math.pow(w.d*1e-3,2)/4;
+  const resist = w => MATS[w.m].rho*w.L/area(w);
+  const fx = x => x>=100?x.toFixed(0):x>=10?x.toFixed(1):x>=0.1?x.toFixed(2):x.toExponential(1);
+  function syncLocks(){
+    [['L','L'],['D','d'],['M','m']].forEach(([k,f])=>{ if(lock[k]) wires[1][f]=wires[0][f]; });
+    [0,1].forEach(i=>{
+      q('#wMat'+i).value=wires[i].m; q('#wL'+i).value=wires[i].L; q('#nwL'+i).value=wires[i].L; q('#wD'+i).value=wires[i].d; q('#nwD'+i).value=wires[i].d;
+    });
+    q('#wMat1').disabled=lock.M; q('#wL1').disabled=q('#nwL1').disabled=lock.L; q('#wD1').disabled=q('#nwD1').disabled=lock.D;
+  }
+  function drawWire(){
+    syncLocks();
+    let g='';
+    wires.forEach((w,i)=>{
+      const m=MATS[w.m], R=resist(w), y=62+i*100;
+      const len = 20+300*(Math.log10(Math.min(10,Math.max(0.1,w.L)))+1)/2, h = 8+44*Math.min(2,w.d)/2, x0=40, x1=x0+len;
+      g += `<text x="10" y="${y-h/2-24}" font-size="14" font-weight="600" style="fill:${COL[i]}">${TAG[i]} · ${m.n}</text>
+        <line x1="12" y1="${y}" x2="${x0}" y2="${y}" stroke="var(--wire)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="${x1}" y1="${y}" x2="370" y2="${y}" stroke="var(--wire)" stroke-width="4" stroke-linecap="round"/>
+        <rect x="${x0}" y="${y-h/2}" width="${len}" height="${h}" fill="${m.c}" stroke="var(--line)"/>
+        <rect x="${x0}" y="${y-h/2}" width="${len}" height="${h*0.35}" fill="#fff" opacity=".2"/>
+        <ellipse cx="${x1}" cy="${y}" rx="${Math.max(2,h/5)}" ry="${h/2}" fill="${m.c}" stroke="var(--line)"/>
+        <line x1="${x0}" y1="${y+h/2+12}" x2="${x1}" y2="${y+h/2+12}" stroke="var(--muted)" marker-start="url(#ar)" marker-end="url(#ar)"/>
+        <text x="${(x0+x1)/2}" y="${y+h/2+28}" text-anchor="middle" font-size="12" style="fill:var(--text)">L = ${w.L} m   d = ${w.d} mm</text>
+        <text x="385" y="${y+7}" font-size="20" font-weight="600" style="fill:${COL[i]}">R = ${fR(R)}</text>`;
+    });
+    q('#wireSvg').innerHTML = g;
+    const [a,b]=wires, Ra=resist(a), Rb=resist(b), rho=MATS[b.m].rho/MATS[a.m].rho, Lr=b.L/a.L, Ar=area(a)/area(b);
+    const mm = w => (area(w)*1e6).toFixed(area(w)*1e6<0.1?4:3);
+    q('#wireOut').innerHTML = row('<span style="color:var(--accent)">A: พื้นที่หน้าตัด / R</span>',`${mm(a)} mm² / ${fR(Ra)}`)
+      + row('<span style="color:var(--volt)">B: พื้นที่หน้าตัด / R</span>',`${mm(b)} mm² / ${fR(Rb)}`)
+      + row('R<sub>B</sub> ÷ R<sub>A</sub>',`<b>${fx(Rb/Ra)}</b> เท่า`)
+      + `<span class="muted" style="grid-column:1/-1;margin-top:4px">แยกตามตัวแปร: R<sub>B</sub>/R<sub>A</sub> = (ρ<sub>B</sub>/ρ<sub>A</sub>) × (L<sub>B</sub>/L<sub>A</sub>) × (A<sub>A</sub>/A<sub>B</sub>)</span>`
+      + row('ผลจากวัสดุ ρ<sub>B</sub>/ρ<sub>A</sub>',fx(rho)+' เท่า')+row('ผลจากความยาว L<sub>B</sub>/L<sub>A</sub>',fx(Lr)+' เท่า')+row('ผลจากพื้นที่ A<sub>A</sub>/A<sub>B</sub> (d กำลังสอง)',fx(Ar)+' เท่า')
+      + `<span class="muted" style="grid-column:1/-1">ลองล็อก L ให้เท่ากัน แล้วเปลี่ยนวัสดุกับ d ทีละอย่าง สังเกตว่า d เป็น 2 เท่า A เป็น 4 เท่า R ลดเหลือ ¼ ค่า ρ เป็นค่าประมาณที่อุณหภูมิห้อง</span>`;
+  }
+  [0,1].forEach(i=>{
+    q('#wMat'+i).onchange = ()=>{ wires[i].m=+q('#wMat'+i).value; draw(); };
+    link('wL'+i,'nwL'+i,0.01,1000,()=>wires[i].L,v=>{wires[i].L=v;});
+    link('wD'+i,'nwD'+i,0.01,50,()=>wires[i].d,v=>{wires[i].d=v;});
+  });
+  q('#lockL').onchange = e=>{ lock.L=e.target.checked; draw(); };
+  q('#lockD').onchange = e=>{ lock.D=e.target.checked; draw(); };
+  q('#lockM').onchange = e=>{ lock.M=e.target.checked; draw(); };
+
+  /* ---- Ohm's law graph ---- */
+  const ohm = {V:12,R1:10,R2:20};
+  const nice = x => { const e=Math.pow(10,Math.floor(Math.log10(x))), f=x/e; return (f<=1?1:f<=2?2:f<=5?5:10)*e; };
+  function drawOhm(){
+    const W=520,H=300,l=52,r=16,t=16,b=40,pw=W-l-r,ph=H-t-b;
+    const xmax = Math.max(24,Math.ceil(ohm.V/6)*6), ymax = nice(xmax/Math.min(ohm.R1,ohm.R2));
+    const X=v=>l+v/xmax*pw, Y=v=>t+ph-v/ymax*ph, f=v=>v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2).replace(/0$/,'');
+    let g='';
+    for(let k=0;k<=4;k++){
+      const xv=xmax*k/4, yv=ymax*k/4;
+      g+=`<line x1="${X(xv)}" y1="${t}" x2="${X(xv)}" y2="${t+ph}" stroke="var(--line)" opacity=".5"/><text x="${X(xv)}" y="${t+ph+16}" text-anchor="middle" font-size="12" style="fill:var(--muted)">${f(xv)}</text>`;
+      g+=`<line x1="${l}" y1="${Y(yv)}" x2="${l+pw}" y2="${Y(yv)}" stroke="var(--line)" opacity=".5"/><text x="${l-6}" y="${Y(yv)+4}" text-anchor="end" font-size="12" style="fill:var(--muted)">${f(yv)}</text>`;
+    }
+    g+=`<text x="${l+pw/2}" y="${H-6}" text-anchor="middle" font-size="13" style="fill:var(--text)">V (โวลต์)</text><text x="14" y="${t+ph/2}" text-anchor="middle" font-size="13" transform="rotate(-90 14 ${t+ph/2})" style="fill:var(--text)">I (แอมแปร์)</text>`;
+    [[ohm.R1,'var(--accent)'],[ohm.R2,'var(--volt)']].forEach(([R,c])=>{
+      const I=ohm.V/R; g+=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(xmax)}" y2="${Y(Math.min(ymax,xmax/R))}" stroke="${c}" stroke-width="2.5"/>`;
+      g+=`<line x1="${X(ohm.V)}" y1="${Y(I)}" x2="${X(ohm.V)}" y2="${Y(0)}" stroke="${c}" stroke-dasharray="4 4" opacity=".8"/><line x1="${l}" y1="${Y(I)}" x2="${X(ohm.V)}" y2="${Y(I)}" stroke="${c}" stroke-dasharray="4 4" opacity=".8"/><circle cx="${X(ohm.V)}" cy="${Y(I)}" r="5.5" fill="${c}"/>`;
+    });
+    q('#ohmSvg').innerHTML = g;
+    const I1=ohm.V/ohm.R1, I2=ohm.V/ohm.R2, fi=x=>x>=1?x.toFixed(2):x.toFixed(3);
+    q('#ohmOut').innerHTML = row('<span style="color:var(--accent)">I₁ = V/R₁</span>',`${ohm.V} ÷ ${ohm.R1} = ${fi(I1)} A`)
+      + row('<span style="color:var(--volt)">I₂ = V/R₂</span>',`${ohm.V} ÷ ${ohm.R2} = ${fi(I2)} A`)
+      + row('ความชันของเส้น = 1/R',`${(1/ohm.R1).toFixed(3)} และ ${(1/ohm.R2).toFixed(3)} S`)
+      + `<span class="muted" style="grid-column:1/-1">ตัวต้านทานที่เป็นไปตามกฎของโอห์มได้กราฟเป็นเส้นตรงผ่านจุดกำเนิด R น้อยกว่าเส้นชันกว่า ที่ V เท่ากันกระแสจึงมากกว่า V/I จึงคงที่เท่ากับ R</span>`;
+  }
+  link('ov','nov',0,250,()=>ohm.V,v=>{ohm.V=v;});
+  link('or1','nor1',0.1,100000,()=>ohm.R1,v=>{ohm.R1=v;});
+  link('or2','nor2',0.1,100000,()=>ohm.R2,v=>{ohm.R2=v;});
+  function draw(){ drawWire(); drawOhm(); drawDrift(); if(typeof drawMeter==='function'&&window.__mReady){ drawMeter(); drawLoad(); drawOhmmeter(); } }
+
+  /* ---- drift velocity ---- */
+  const E = 1.602e-19;
+  const DM = [{n:'ทองแดง',nd:8.5e28,dots:70},{n:'อะลูมิเนียม',nd:18.1e28,dots:100},{n:'เงิน',nd:5.86e28,dots:55}];
+  const dr = {m:0,I:1,d:1};
+  q('#dMat').innerHTML = DM.map((m,i)=>`<option value="${i}">${m.n}  (n = ${sci(m.nd)} /m³)</option>`).join('');
+  q('#dMat').onchange = ()=>{ dr.m=+q('#dMat').value; initDots(); drawDrift(); };
+  const vd = () => dr.I/(DM[dr.m].nd*E*Math.PI*Math.pow(dr.d*1e-3,2)/4);   // m/s
+  function fT(t){ return t<120 ? t.toFixed(1)+' วินาที' : t<7200 ? (t/60).toFixed(1)+' นาที' : t<172800 ? (t/3600).toFixed(1)+' ชั่วโมง' : (t/86400).toFixed(1)+' วัน'; }
+  function drawDrift(){
+    const m=DM[dr.m], A=Math.PI*Math.pow(dr.d*1e-3,2)/4, v=vd(), vmm=v*1e3;
+    q('#driftOut').innerHTML = row('พื้นที่หน้าตัด A',(A*1e6).toFixed(3)+' mm²')
+      + row('ความเร็วลอยเลื่อน v<sub>d</sub> = I/(neA)',vmm>=1?vmm.toFixed(2)+' mm/s':vmm>=0.001?vmm.toFixed(4)+' mm/s':sci(vmm)+' mm/s')
+      + row('อิเล็กตรอนเดิน 1 เมตรใช้เวลา',fT(1/v))
+      + row('ประจุผ่านหน้าตัดใน 1 วินาที (q = It)',dr.I.toFixed(2)+' C')
+      + row('จำนวนอิเล็กตรอนต่อวินาที (I/e)',sci(dr.I/E)+' ตัว')
+      + `<span class="muted" style="grid-column:1/-1">ลองเพิ่ม I หรือลด d แล้ว v<sub>d</sub> เพิ่มขึ้น แต่ก็ยังช้ามากเทียบกับสัญญาณไฟฟ้าที่แผ่ไปทั่ววงจรเกือบทันที เพราะอิเล็กตรอนในลวดมีอยู่เต็มเส้นแล้ว</span>`;
+  }
+  const cv = q('#driftCv'), cx = cv.getContext('2d'); let dots = [];
+  function initDots(){
+    const W=cv.width,H=cv.height,hh=40+dr.d*0; dots=[];
+    for(let i=0;i<DM[dr.m].dots;i++) dots.push({x:Math.random()*W,y:Math.random(),jx:0,jy:0});
+  }
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#888';
+  let last = performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-last)/1000); last=now;
+    if(!q('#tabBasics').hidden){
+      const W=cv.width,H=cv.height, wh = 70+ (dr.d-0.5)/3.5*130, y0=H/2-wh/2;
+      const sp = vd()*1e3*40*2;               // px/s on the 1040-wide canvas (2x of css px)
+      cx.clearRect(0,0,W,H);
+      cx.fillStyle = css('--board'); cx.fillRect(0,0,W,H);
+      cx.fillStyle = 'rgba(200,120,60,.18)'; cx.strokeStyle = css('--line'); cx.lineWidth=2;
+      cx.fillRect(0,y0,W,wh); cx.strokeRect(0,y0,W,wh);
+      // lattice ions
+      cx.fillStyle = css('--muted'); cx.globalAlpha=.55;
+      for(let x=30;x<W;x+=60) for(let y=y0+22;y<y0+wh-10;y+=44){ cx.beginPath(); cx.arc(x,y,7,0,6.283); cx.fill(); }
+      cx.globalAlpha=1;
+      const col = css('--volt');
+      dots.forEach(p=>{
+        p.x -= sp*dt; p.jx += (Math.random()-.5)*10; p.jy += (Math.random()-.5)*10; p.jx*=.8; p.jy*=.8;
+        if(p.x<0) p.x+=W; if(p.x>W) p.x-=W;
+        cx.fillStyle = col; cx.beginPath(); cx.arc(p.x+p.jx, y0+8+p.y*(wh-16)+p.jy, 4.5, 0, 6.283); cx.fill();
+      });
+      cx.fillStyle = css('--text'); cx.font='600 22px sans-serif';
+      cx.fillStyle = css('--accent'); cx.fillText('ทิศกระแส  →', 20, 36);
+      cx.fillStyle = col; cx.fillText('←  ทิศการลอยเลื่อนของอิเล็กตรอน', W-420, H-20);
+    }
+    requestAnimationFrame(frame);
+  }
+  link('dI','ndI',0.001,1000,()=>dr.I,v=>{dr.I=v;});
+  link('dD','ndD',0.01,50,()=>dr.d,v=>{dr.d=v;});
+  initDots(); requestAnimationFrame(frame);
+
+  /* ---- meters tab ---- */
+  const F3 = x => { if(!isFinite(x)) return '—'; const a=Math.abs(x); return a===0?'0':a>=1000?x.toFixed(0):a>=100?x.toFixed(1):a>=1?x.toFixed(2):a>=0.01?x.toFixed(3):a>=1e-4?x.toFixed(5):sci(a); };
+  function linkLog(sl,nu,lo,hi,get,set,after){
+    const S=q('#'+sl), N=q('#'+nu), pr = v => +(+v).toPrecision(3);
+    S.oninput = ()=>{ set(pr(Math.pow(10,+S.value))); N.value=get(); after(); };
+    N.oninput = ()=>{ const v=parseFloat(N.value); if(!isFinite(v)||v<lo||v>hi) return; set(v); S.value=Math.log10(v); after(); };
+    N.onchange = ()=>{ let v=parseFloat(N.value); if(!isFinite(v)) v=get(); v=Math.min(hi,Math.max(lo,v)); set(v); N.value=get(); S.value=Math.log10(v); after(); };
+    N.onkeydown = e=>{ if(e.key==='Enter') N.blur(); };
+    N.value=get(); S.value=Math.log10(get());
+  }
+  function gauge(svgId,f,ticks,unit,color){
+    // f: needle fraction of full scale (0..1.2); ticks: array of [fraction,label]
+    const cx=150,cy=165,R=120, ang = fr => (-50+100*fr)*Math.PI/180, P=(fr,r)=>[cx+r*Math.sin(ang(fr)),cy-r*Math.cos(ang(fr))];
+    const fc=Math.max(0,Math.min(1.2,f)); let g='';
+    const [ax,ay]=P(0,R),[bx,by]=P(1,R),[hx,hy]=P(1.2,R);
+    g+=`<path d="M${ax} ${ay} A${R} ${R} 0 0 1 ${bx} ${by}" fill="none" stroke="var(--muted)" stroke-width="3"/><path d="M${bx} ${by} A${R} ${R} 0 0 1 ${hx} ${hy}" fill="none" stroke="#e5484d" stroke-width="3" opacity=".7"/>`;
+    ticks.forEach(([fr,lb])=>{ const [x1,y1]=P(fr,R),[x2,y2]=P(fr,R-10),[x3,y3]=P(fr,R-24); g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--text)" stroke-width="2"/><text x="${x3}" y="${y3+4}" text-anchor="middle" font-size="11" style="fill:var(--text)">${lb}</text>`; });
+    const [nx,ny]=P(fc,R-6);
+    g+=`<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="7" fill="${color}"/><text x="${cx}" y="${cy+22}" text-anchor="middle" font-size="15" font-weight="600" style="fill:${color}">${unit}</text>`;
+    q('#'+svgId).innerHTML=g;
+  }
+  const tk = (max,n) => Array.from({length:n+1},(_,i)=>[i/n,F3(max*i/n)]);
+  // ---- 1) galvanometer
+  const mt = {mode:'A',Ig:1,Rg:50,rangeA:1,rangeV:10,x:0.5};
+  const rangeNow = ()=> mt.mode==='A'?mt.rangeA:mt.rangeV;
+  function mSync(){
+    const A=mt.mode==='A';
+    q('#lmRange').textContent = A?'ย่านวัดกระแสสูงสุด':'ย่านวัดแรงดันสูงสุด'; q('#umRange').textContent=A?'A':'V';
+    q('#lmX').textContent = A?'กระแสที่วัด':'แรงดันที่วัด'; q('#umX').textContent=A?'A':'V';
+    const rs=q('#mRange'); rs.min=A?0.01:1; rs.max=A?10:250; rs.step=A?0.01:1;
+    q('#nmRange').value=rangeNow(); rs.value=rangeNow();
+    const xs=q('#mX'); xs.max=+(rangeNow()*1.2).toPrecision(4); xs.step=rangeNow()/200;
+    mt.x=Math.min(mt.x,rangeNow()*1.2); q('#nmX').value=+mt.x.toPrecision(4); xs.value=mt.x;
+  }
+  function drawMeter(){
+    const A=mt.mode==='A', Ig=mt.Ig*1e-3, Rg=mt.Rg, rg=rangeNow(), x=mt.x, f=x/rg;
+    let rows='', svg='', Rs=NaN;
+    if(A){
+      Rs = rg>Ig ? Ig*Rg/(rg-Ig) : NaN; const Rm = Rs*Rg/(Rs+Rg);
+      const Ig_now = Ig*f, Is=x-Ig_now;
+      rows = row('R<sub>s</sub> = I<sub>g</sub>R<sub>g</sub>/(I − I<sub>g</sub>)',isFinite(Rs)?`${F3(Ig*1e3)} mA × ${F3(Rg)} Ω ÷ (${F3(rg)} A − ${F3(Ig*1e3)} mA)`:'ย่านต้องมากกว่า I<sub>g</sub>')
+        + row('ชันต์ที่ต้องต่อขนาน R<sub>s</sub>',`<b>${isFinite(Rs)?fR(Rs):'—'}</b>`)
+        + row('ความต้านทานของแอมมิเตอร์ R<sub>m</sub> = R<sub>g</sub>∥R<sub>s</sub>',isFinite(Rs)?fR(Rm):'—')
+        + row('กระแสที่ผ่านขดลวด G',F3(Ig_now*1e3)+' mA ('+Math.round(f*100)+'% ของเต็มสเกล)')
+        + row('กระแสที่ผ่านชันต์',F3(Is)+' A')
+        + `<span class="muted" style="grid-column:1/-1">เข็มบอกสัดส่วน I<sub>g</sub> เทียบเต็มสเกล แต่สเกลถูกเขียนใหม่เป็นกระแสรวง ชันต์ช่วยแบ่งกระแสส่วนเกินออกไป ขดลวดจึงไม่ไหม้ ถ้าวัดเกินย่านเข็มจะเกินเต็มสเกล</span>`;
+      svg = `<line x1="14" y1="100" x2="70" y2="100" stroke="var(--wire)" stroke-width="3"/><line x1="70" y1="100" x2="70" y2="55" stroke="var(--wire)" stroke-width="3"/><line x1="70" y1="100" x2="70" y2="150" stroke="var(--wire)" stroke-width="3"/>
+        <line x1="70" y1="55" x2="140" y2="55" stroke="var(--wire)" stroke-width="3"/><line x1="220" y1="55" x2="290" y2="55" stroke="var(--wire)" stroke-width="3"/>
+        <circle cx="180" cy="55" r="26" fill="var(--panel)" stroke="var(--c-ammeter)" stroke-width="2.5"/><text x="180" y="62" text-anchor="middle" font-size="20" font-weight="600" style="fill:var(--c-ammeter)">G</text>
+        <line x1="70" y1="150" x2="140" y2="150" stroke="var(--wire)" stroke-width="3"/><line x1="220" y1="150" x2="290" y2="150" stroke="var(--wire)" stroke-width="3"/>
+        <rect x="140" y="138" width="80" height="24" rx="3" fill="var(--panel)" stroke="var(--c-resistor)" stroke-width="2.5"/><text x="180" y="155" text-anchor="middle" font-size="13" style="fill:var(--c-resistor)">R<tspan font-size="10" dy="3">s</tspan></text>
+        <line x1="290" y1="55" x2="290" y2="150" stroke="var(--wire)" stroke-width="3"/><line x1="290" y1="100" x2="346" y2="100" stroke="var(--wire)" stroke-width="3"/>
+        <text x="14" y="88" font-size="12" style="fill:var(--amp)">I = ${F3(x)} A</text><text x="180" y="22" text-anchor="middle" font-size="12" style="fill:var(--amp)">I<tspan font-size="9" dy="3">g</tspan><tspan dy="-3"> = ${F3(Ig_now*1e3)} mA</tspan></text>
+        <text x="180" y="186" text-anchor="middle" font-size="12" style="fill:var(--amp)">I − I<tspan font-size="9" dy="3">g</tspan><tspan dy="-3"> = ${F3(Is)} A</tspan></text>
+        <text x="336" y="90" font-size="11" text-anchor="end" style="fill:var(--muted)">แอมมิเตอร์</text>`;
+    } else {
+      const Rv = rg/Ig, Rm = Rv-Rg, Ig_now = x/Rv;
+      rows = row('R<sub>ทั้งหมด</sub> = V/I<sub>g</sub>',`${F3(rg)} V ÷ ${F3(Ig*1e3)} mA = ${fR(Rv)}`)
+        + row('ตัวต้านทานอนุกรม R<sub>m</sub> = V/I<sub>g</sub> − R<sub>g</sub>',`<b>${Rm>0?fR(Rm):'ย่านน้อยเกินไป'}</b>`)
+        + row('ความต้านทานของโวลต์มิเตอร์',fR(Rv)+' (มากเพื่อไม่ดึงกระแส)')
+        + row('กระแสที่ผ่านขดลวด G',F3(Ig_now*1e3)+' mA ('+Math.round(f*100)+'% ของเต็มสเกล)')
+        + row('แรงดันตกคร่อม R<sub>m</sub> / ขดลวด',`${F3(Ig_now*Rm)} V / ${F3(Ig_now*Rg)} V`)
+        + `<span class="muted" style="grid-column:1/-1">ตัวต้านทานอนุกรมรับแรงดันส่วนใหญ่ ขดลวดรับเพียง I<sub>g</sub>R<sub>g</sub> เมื่อเต็มสเกล เข็มบอกแรงดันที่คร่อมมิเตอร์ทั้งชุด</span>`;
+      Rs = Rm;
+      svg = `<line x1="14" y1="100" x2="60" y2="100" stroke="var(--wire)" stroke-width="3"/><rect x="60" y="88" width="90" height="24" rx="3" fill="var(--panel)" stroke="var(--c-resistor)" stroke-width="2.5"/><text x="105" y="105" text-anchor="middle" font-size="13" style="fill:var(--c-resistor)">R<tspan font-size="10" dy="3">m</tspan></text>
+        <line x1="150" y1="100" x2="200" y2="100" stroke="var(--wire)" stroke-width="3"/><circle cx="226" cy="100" r="26" fill="var(--panel)" stroke="var(--c-voltmeter)" stroke-width="2.5"/><text x="226" y="107" text-anchor="middle" font-size="20" font-weight="600" style="fill:var(--c-voltmeter)">G</text>
+        <line x1="252" y1="100" x2="346" y2="100" stroke="var(--wire)" stroke-width="3"/>
+        <text x="14" y="80" font-size="12" style="fill:var(--volt)">V = ${F3(x)} V</text><text x="226" y="150" text-anchor="middle" font-size="12" style="fill:var(--amp)">I<tspan font-size="9" dy="3">g</tspan><tspan dy="-3"> = ${F3(Ig_now*1e3)} mA</tspan></text>
+        <text x="336" y="90" font-size="11" text-anchor="end" style="fill:var(--muted)">โวลต์มิเตอร์</text>`;
+    }
+    q('#mCirc').innerHTML=svg; q('#mOut').innerHTML=rows;
+    gauge('mGauge',f,tk(rg,5),A?'A':'V',A?'var(--c-ammeter)':'var(--c-voltmeter)');
+    mt.Rs=Rs;
+  }
+  document.querySelectorAll('input[name=mm]').forEach(r=>r.onchange=()=>{ mt.mode=r.value; mSync(); draw(); });
+  const mRefresh = ()=>draw();
+  link('mIg','nmIg',0.01,100,()=>mt.Ig,v=>{mt.Ig=v;});
+  link('mRg','nmRg',0.1,10000,()=>mt.Rg,v=>{mt.Rg=v;});
+  link('mRange','nmRange',0.001,1000,()=>rangeNow(),v=>{ if(mt.mode==='A') mt.rangeA=v; else mt.rangeV=v; const xs=q('#mX'); xs.max=+(v*1.2).toPrecision(4); xs.step=v/200; mt.x=Math.min(mt.x,v*1.2); q('#nmX').value=+mt.x.toPrecision(4); xs.value=mt.x; });
+  link('mX','nmX',0,1000,()=>+mt.x.toPrecision(4),v=>{mt.x=v;});
+  // ---- 2) loading effect
+  const ld = {E:12,R1:100,R2:100};
+  function drawLoad(){
+    const A=mt.mode==='A', Rs=mt.Rs;
+    let rows, svg;
+    const Ig=mt.Ig*1e-3, Rg=mt.Rg, rg=rangeNow();
+    q('#rowR2').style.display = A?'none':''; q('#lblR1').textContent = A?'R (ตัวต้านทานในวงจร)':'R₁'; 
+    if(A){
+      const Rm = isFinite(Rs)?Rs*Rg/(Rs+Rg):NaN, It=ld.E/ld.R1, Im=ld.E/(ld.R1+Rm);
+      rows = row('กระแสจริง (ไม่มีมิเตอร์) I = ε/R',F3(It)+' A') + row('R<sub>m</sub> ของแอมมิเตอร์ที่ออกแบบจากการ์ดบน',isFinite(Rm)?fR(Rm):'—')
+        + row('กระแสที่มิเตอร์อ่าน I = ε/(R + R<sub>m</sub>)',F3(Im)+' A') + row('คลาดเคลื่อน',`<b>${F3(100*(Im-It)/It)} %</b>`)
+        + `<span class="muted" style="grid-column:1/-1">แอมมิเตอร์ที่ดี R<sub>m</sub> ต้องน้อยกว่า R มาก ลองลด R ให้เหลือใกล้ R<sub>m</sub> จะเห็นว่าแอมมิเตอร์ทำให้กระแสในวงจรลดลง</span>`;
+      svg = `<rect x="40" y="30" width="280" height="90" fill="none" stroke="var(--wire)" stroke-width="3"/>
+        <text x="180" y="22" text-anchor="middle" font-size="12" style="fill:var(--muted)">ε = ${ld.E} V</text>
+        <rect x="100" y="20" width="60" height="20" fill="var(--panel)" stroke="var(--c-ammeter)" stroke-width="2.5"/><text x="130" y="35" text-anchor="middle" font-size="13" style="fill:var(--c-ammeter)">A</text>
+        <rect x="150" y="110" width="60" height="20" fill="var(--panel)" stroke="var(--c-resistor)" stroke-width="2.5"/><text x="180" y="125" text-anchor="middle" font-size="13" style="fill:var(--c-resistor)">R</text>
+        <text x="180" y="148" text-anchor="middle" font-size="13" style="fill:var(--amp)">อ่านได้ ${F3(Im)} A (จริง ${F3(It)} A)</text>`;
+    } else {
+      const Rv = rg/Ig, Rp = ld.R2*Rv/(ld.R2+Rv), Vt = ld.E*ld.R2/(ld.R1+ld.R2), Vm = ld.E*Rp/(ld.R1+Rp);
+      rows = row('แรงดันจริงคร่อม R₂ (ไม่มีมิเตอร์)',F3(Vt)+' V') + row('R<sub>V</sub> ของโวลต์มิเตอร์ที่ออกแบบจากการ์ดบน',fR(Rv))
+        + row('R₂ ขนานกับ R<sub>V</sub>',fR(Rp)) + row('แรงดันที่มิเตอร์อ่าน',F3(Vm)+' V') + row('คลาดเคลื่อน',`<b>${F3(100*(Vm-Vt)/Vt)} %</b>`)
+        + `<span class="muted" style="grid-column:1/-1">โวลต์มิเตอร์ที่ดี R<sub>V</sub> ต้องมากกว่า R₂ มาก ลองเพิ่ม R₂ ให้ใกล้ R<sub>V</sub> จะเห็นแรงดันที่อ่านได้ต่ำกว่าจริง เพราะมิเตอร์ดึงกระแสไป</span>`;
+      svg = `<rect x="40" y="30" width="280" height="90" fill="none" stroke="var(--wire)" stroke-width="3"/>
+        <text x="60" y="22" font-size="12" style="fill:var(--muted)">ε = ${ld.E} V</text>
+        <rect x="100" y="20" width="60" height="20" fill="var(--panel)" stroke="var(--c-resistor)" stroke-width="2.5"/><text x="130" y="35" text-anchor="middle" font-size="13" style="fill:var(--c-resistor)">R₁</text>
+        <rect x="150" y="110" width="60" height="20" fill="var(--panel)" stroke="var(--c-resistor)" stroke-width="2.5"/><text x="180" y="125" text-anchor="middle" font-size="13" style="fill:var(--c-resistor)">R₂</text>
+        <circle cx="290" cy="75" r="14" fill="var(--panel)" stroke="var(--c-voltmeter)" stroke-width="2.5"/><text x="290" y="80" text-anchor="middle" font-size="14" style="fill:var(--c-voltmeter)">V</text>
+        <text x="180" y="148" text-anchor="middle" font-size="13" style="fill:var(--volt)">อ่านได้ ${F3(Vm)} V (จริง ${F3(Vt)} V)</text>`;
+    }
+    q('#lCirc').innerHTML=svg; q('#lOut').innerHTML=rows;
+  }
+  link('lE','nlE',0.1,250,()=>ld.E,v=>{ld.E=v;});
+  linkLog('lR1','nlR1',1,1e7,()=>ld.R1,v=>{ld.R1=v;},()=>draw());
+  linkLog('lR2','nlR2',1,1e7,()=>ld.R2,v=>{ld.R2=v;},()=>draw());
+  // ---- 3) ohmmeter
+  const om = {E:1.5,Rx:100};
+  function drawOhmmeter(){
+    const Ig=mt.Ig*1e-3, Rh = om.E/Ig;       // total internal resistance (R0 + Rg): half-deflection reading
+    const I = om.E/(Rh+om.Rx), f = I/Ig;     // needle fraction; reads 0 Ω at full scale, ∞ at zero
+    // ticks at selected Rx values: fraction = Rh/(Rh+Rx)
+    const ticks = [0,0.25,0.5,1,2,5].map(k=>[1/(1+k),k===0?'0':F3(k*Rh)]);
+    ticks.push([0.02,'∞']);
+    gauge('oGauge',f,ticks,'Ω','var(--accent)');
+    q('#oOut').innerHTML = row('R<sub>ใน</sub> = R<sub>0</sub> + R<sub>g</sub> = ε/I<sub>g</sub>',`${F3(om.E)} V ÷ ${F3(Ig*1e3)} mA = ${fR(Rh)}`)
+      + row('R<sub>0</sub> (ตัวต้านทานปรับศูนย์)',Rh>mt.Rg?fR(Rh-mt.Rg):'R<sub>g</sub> มากเกินไป')
+      + row('กระแสที่ไหล I = ε/(R<sub>ใน</sub> + R<sub>x</sub>)',F3(I*1e3)+' mA ('+Math.round(f*100)+'% ของเต็มสเกล)')
+      + row('เข็มอ่านได้ R<sub>x</sub>',`<b>${fR(om.Rx)}</b>`)
+      + `<span class="muted" style="grid-column:1/-1">สเกลโอห์มกลับด้านและไม่เป็นเส้นตรง: R<sub>x</sub> = 0 เข็มเต็มสเกล (ลัดปลายวัดแล้วปรับศูนย์) R<sub>x</sub> = R<sub>ใน</sub> เข็มอยู่ครึ่งหนึ่ง R<sub>x</sub> เปิดวงจรเข็มอยู่ศูนย์ กระแส I<sub>g</sub> และ R<sub>g</sub> ใช้ค่าจากการ์ดบนสุด</span>`;
+  }
+  link('oE','noE',0.5,100,()=>om.E,v=>{om.E=v;});
+  linkLog('oX','noX',1,1e5,()=>om.Rx,v=>{om.Rx=v;},()=>draw());
+  mSync(); window.__mReady=true;
+
+  /* ---- tabs ---- */
+  const TITLES = {
+    basics:['ห้องทดลองไฟฟ้ากระแส','เทียบเส้นลวด 2 เส้นว่าวัสดุ ความยาว และขนาดส่งผลต่อความต้านทานอย่างไร พร้อมกราฟของกฎของโอห์ม'],
+    meters:['มิเตอร์ไฟฟ้า','ดัดแปลงกัลวานอมิเตอร์เป็นแอมมิเตอร์และโวลต์มิเตอร์ ดูผลของมิเตอร์จริงต่อวงจร และหลักการของโอห์มมิเตอร์'],
+    builder:['กระดานต่อวงจรไฟฟ้า','หยิบชิ้นส่วนมาวาง ลากสายต่อเอง แล้วดูกระแสและความต่างศักย์ในวงจรจริง']
+  };
+  function openTab(name){
+    curTab = name;
+    document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===name));
+    q('#tabBasics').hidden = name!=='basics'; q('#tabBuilder').hidden = name!=='builder'; q('#tabMeters').hidden = name!=='meters';
+    q('#pageTitle').textContent = TITLES[name][0]; q('#pageSub').textContent = TITLES[name][1];
+    if(name==='builder'){ renderScene(); renderPanel(); renderPower(); }
+  }
+  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
+  draw(); openTab('basics');
+})();
+</script>
+</body>
+</html>
